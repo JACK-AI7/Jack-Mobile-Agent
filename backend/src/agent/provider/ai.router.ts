@@ -28,7 +28,7 @@ class GroqProvider implements AIProvider {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gemma2-9b-it',
+          model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2048,
           temperature: 0.7,
@@ -55,7 +55,7 @@ class GroqProvider implements AIProvider {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gemma2-9b-it',
+          model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: structuredPrompt }],
           max_tokens: 4096,
           temperature: 0.3,
