@@ -1,69 +1,83 @@
 <div align="center">
+  <h1>📱 Jack Mobile Agent</h1>
+  <p><b>The Next-Generation Autonomous AI Agent for Mobile Devices</b></p>
   
-# 📱 Jack Mobile Agent
-**The Next-Generation Autonomous AI Agent for Mobile Devices**
-
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![Socket.io](https://img.shields.io/badge/Socket.io-010101?&style=for-the-badge&logo=Socket.io&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
-
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter"></a>
+  <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart"></a>
+  <a href="https://socket.io"><img src="https://img.shields.io/badge/Socket.io-010101?&style=for-the-badge&logo=Socket.io&logoColor=white" alt="Socket.io"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License"></a>
 </div>
+
+<br/>
+
+> **Jack Mobile Agent** bridges the gap between complex Large Language Model (LLM) reasoning and native on-device execution, delivering a proactive digital assistant with a visually stunning, real-time interface.
+
+## 📑 Table of Contents
+- [About the Project](#-about-the-project)
+- [Core Features](#-core-features)
+- [System Architecture](#-system-architecture)
+- [Security & Privacy](#-security--privacy)
+- [Getting Started](#-getting-started)
+- [License](#-license)
 
 ---
 
 ## 📖 About the Project
 
-**Jack Mobile Agent** is a cutting-edge, autonomous AI interface built entirely in Flutter. Engineered to bridge the gap between complex Large Language Model (LLM) inference and native on-device execution, Jack provides users with an intelligent, proactive digital assistant. 
+Unlike traditional chatbots that simply stream text responses, Jack is an **Agentic System**. It parses natural language into actionable execution plans, securely interfacing with native device capabilities to complete tasks on your behalf. 
 
-Unlike traditional chatbots that simply return text, Jack is an **Agentic System**. It parses natural language into actionable, multi-step execution plans, interfacing directly with native device capabilities. Powered by a robust backend architecture (NestJS, PostgreSQL, Redis, BullMQ) and utilizing Groq's high-speed inference, Jack represents the future of mobile-AI interaction.
-
-The centerpiece of the application is the **Liquid Orb UI**—a visually stunning, fluid interface that provides real-time, WebSocket-driven feedback reflecting the AI's internal cognitive states (Thinking, Planning, Executing, and Success).
+The centerpiece of the application is the **Liquid Orb UI**—a fluid, mesh-gradient visualizer that provides real-time, WebSocket-driven feedback reflecting the AI's internal cognitive states (Thinking, Planning, Executing, and Success).
 
 ---
 
-## ✨ Core Features & Capabilities
+## ✨ Core Features
 
-### 🧠 Agentic Autonomy
-Jack doesn't just chat; it *acts*. By leveraging advanced tool-calling and prompt engineering, the agent can structure complex plans, execute native tools, and evaluate its own success autonomously.
-
-### ⚡ Blazing Fast Execution
-Built to integrate with **Groq's LPU** (Language Processing Unit) architecture via the backend worker, Jack delivers near-instantaneous reasoning and tool-selection capabilities using state-of-the-art models like `llama3-8b-8192`.
-
-### 🔄 Real-Time Telemetry (Socket.IO)
-Jack relies on a deeply integrated WebSocket layer to synchronize the mobile UI with the backend execution engine. Users watch the AI "think" and "act" in absolute real-time without manual polling or loading screens.
-
-### 🎨 Premium UI/UX Design
-- **The Jack Orb**: A dynamic, mesh-gradient orb that physically morphs and pulses based on the agent's real-time lifecycle.
-- **Glassmorphism**: Premium frosted-glass overlays and deep obsidian color palettes create a sleek, futuristic aesthetic.
-
-### 🔒 Enterprise-Grade Security
-- **Strict Tenant Isolation**: JWT-based authentication ensures user data and agent memories are strictly partitioned.
-- **Secure Hardware Storage**: Authentication tokens are encrypted and stored in the native device keystore via `flutter_secure_storage`.
-- **Zero Client-Side Secrets**: All LLM API keys and sensitive infrastructural credentials remain strictly confined to the backend server.
+| Feature | Description |
+| :--- | :--- |
+| **Agentic Autonomy** | Structures complex plans, executes native tools, and evaluates success autonomously without human intervention. |
+| **Blazing Fast AI** | Deeply integrated with **Groq's LPU** architecture (`llama3-8b-8192`) for near-instantaneous reasoning. |
+| **Real-Time Telemetry** | Utilizes **Socket.IO** to synchronize the mobile UI with the backend execution engine instantly. |
+| **Premium UX/UI** | Features a dynamic, breathing "Orb" visualizer and sleek, frosted glassmorphism aesthetics. |
 
 ---
 
 ## 🏗️ System Architecture
 
-The Jack ecosystem is a masterclass in modern distributed systems, divided into strict boundaries of responsibility:
+The ecosystem is engineered with strict boundaries of responsibility to ensure scalability, low latency, and absolute security.
 
-1. **Client Presentation Layer (Flutter)**: Handles UI rendering, WebSocket subscriptions, secure storage, and device-level hardware integrations.
-2. **RESTful Gateway (`jack-api`)**: A NestJS edge server that handles JWT authentication, request validation, and Socket.IO bridging.
-3. **Message Broker (Redis + BullMQ)**: Ensures reliable, asynchronous task queuing and decoupling of HTTP requests from heavy AI inference workloads.
-4. **Agent Worker (`jack-worker`)**: The brain of the operation. This private background service processes queue items, communicates securely with Groq, evaluates tool execution logic, and persists results to the database.
-5. **Persistence Layer (PostgreSQL)**: Stores user telemetry, agent execution history, long-term memory, and tool definitions via Prisma ORM.
+```mermaid
+graph LR
+  A[Flutter Client] -- REST API --> B(NestJS Gateway)
+  A -- Socket.IO --> B
+  B -- Enqueue Task --> C[(Redis + BullMQ)]
+  C -- Consume --> D[Agent Worker]
+  D -- Inference --> E[Groq AI]
+  D -- Telemetry --> B
+```
+
+1. **Presentation Layer (Flutter)**: Handles UI rendering, WebSocket subscriptions, and secure storage.
+2. **RESTful Gateway (`jack-api`)**: A NestJS edge server managing JWT authentication and Socket.IO bridging.
+3. **Message Broker (Redis + BullMQ)**: Ensures reliable asynchronous task queuing.
+4. **Agent Worker (`jack-worker`)**: The background service that processes queues, interfaces with Groq, and evaluates tool logic.
+5. **Persistence Layer (PostgreSQL)**: Stores execution history, long-term memory, and tool definitions.
+
+---
+
+## 🔒 Security & Privacy
+
+Enterprise-grade security principles are woven into the core of the application:
+
+- **Zero Client-Side Secrets**: All LLM API keys and infrastructure credentials remain strictly confined to the backend server.
+- **Secure Hardware Storage**: Authentication tokens are encrypted and stored in the native device keystore via `flutter_secure_storage`.
+- **Strict Tenant Isolation**: JWT-based authentication ensures user data, execution history, and agent memories are cryptographically partitioned.
 
 ---
 
 ## 🚀 Getting Started
 
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
-
 ### Prerequisites
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (latest stable release)
-- [Dart SDK](https://dart.dev/get-dart)
-- A running instance of the **Jack Backend Infrastructure** (NestJS API, Worker, Postgres, Redis)
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) (Latest Stable)
+- A running instance of the **Jack Backend Infrastructure**
 
 ### Installation
 
@@ -73,15 +87,14 @@ Follow these instructions to get a copy of the project up and running on your lo
    cd Jack-Mobile-Agent
    ```
 
-2. **Install Flutter Dependencies:**
+2. **Install dependencies:**
    ```bash
    flutter pub get
    ```
 
 3. **Configure the Environment:**
-   Navigate to `lib/config/environment.dart`. The configuration is strictly typed and environment-aware:
-   - For debug/local builds, it defaults to `http://localhost:3000`.
-   - For production (`--release`), replace the `prodApiUrl` variable with your live server domain (e.g., Railway).
+   Update your backend endpoint in `lib/config/environment.dart`. 
+   *(Defaults to `http://localhost:3000` for debug builds and your production URL for `--release` builds).*
 
 4. **Run the Application:**
    ```bash
@@ -90,21 +103,10 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 ---
 
-## 🤝 Contribution Guidelines
-We welcome contributions! Please review our coding standards and ensure that any new features maintain the strict separation of concerns between the mobile client and the execution backend. 
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License.
 
-Copyright (c) 2026 **B JASWANTH REDDY**. All rights reserved.
+Copyright &copy; 2026 **B JASWANTH REDDY**. All rights reserved.
 
 See the [LICENSE](LICENSE) file for the full legal text.
