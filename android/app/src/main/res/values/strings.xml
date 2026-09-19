@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Jack Multi-Modal AI Automation Service. Allows Jack to interact with apps and navigate the DOM on your behalf.</string>
+</resources>
