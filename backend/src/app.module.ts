@@ -18,6 +18,8 @@ import { AutomationService } from './agent/automation/automation.service.js';
 import { AIProviderRouter } from './agent/provider/ai.router.js';
 import { AuthController } from './auth/auth.controller.js';
 import { HealthController } from './health/health.controller.js';
+import { TasksController } from './api/tasks.controller.js';
+import { AutomationsController } from './api/automations.controller.js';
 
 import { PrismaAgentRepository } from './repository/agent.repository.js';
 import { PrismaExecutionRepository } from './repository/execution.repository.js';
@@ -38,7 +40,9 @@ if (isApi) {
     CapabilitiesController,
     ToolsController,
     MemoryController,
-    HealthController
+    HealthController,
+    TasksController,
+    AutomationsController
   );
 }
 
