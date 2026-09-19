@@ -14,12 +14,31 @@ class GroqProvider implements AIProvider {
   trainingUse = false;
   private readonly logger = new Logger('GroqProvider');
   private apiKey: string;
+  private activeModel: string | null = null;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
+  private async getModel(): Promise<string> {
+    if (this.activeModel) return this.activeModel;
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': 'Bearer ' + this.apiKey }
+      });
+      const data = await res.json();
+      if (data && data.data && data.data.length > 0) {
+        // prefer a small model if possible, otherwise first
+        const model = data.data.find((m: any) => m.id.includes('8b') || m.id.includes('7b'))?.id || data.data[0].id;
+        this.activeModel = model;
+        return model;
+      }
+    } catch(e) {}
+    return 'llama3-8b-8192'; // absolute fallback
+  }
+
   async generate(prompt: string): Promise<string> {
+    const model = await this.getModel();
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -28,7 +47,7 @@ class GroqProvider implements AIProvider {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama3-70b-8192',
+          model: model,
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2048,
           temperature: 0.7,
@@ -46,6 +65,7 @@ class GroqProvider implements AIProvider {
   }
 
   async generateStructured(prompt: string, schema: any): Promise<any> {
+    const model = await this.getModel();
     const structuredPrompt = `${prompt}\n\nRespond ONLY with valid JSON matching this schema: ${JSON.stringify(schema, null, 2)}\nDo not include any explanation, only the JSON object.`;
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -55,7 +75,7 @@ class GroqProvider implements AIProvider {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama3-70b-8192',
+          model: model,
           messages: [{ role: 'user', content: structuredPrompt }],
           max_tokens: 4096,
           temperature: 0.3,
@@ -73,18 +93,6 @@ class GroqProvider implements AIProvider {
       if (!jsonMatch) throw new Error('Groq did not return valid JSON');
       return JSON.parse(jsonMatch[0]);
     } catch (err: any) {
-      if (err.message.includes('model_decommissioned') || err.message.includes('model_not_found')) {
-        try {
-          const mres = await fetch('https://api.groq.com/openai/v1/models', {
-            headers: { 'Authorization': 'Bearer ' + this.apiKey }
-          });
-          const mdata = await mres.json();
-          const models = mdata.data.map((m: any) => m.id).join(', ');
-          throw new Error('Groq Model Error: ' + err.message + ' | Available: ' + models);
-        } catch(e) {
-          throw new Error('Groq Model Error: ' + err.message);
-        }
-      }
       throw new Error('Groq Fetch Error (generateStructured): ' + err.message);
     }
   }
