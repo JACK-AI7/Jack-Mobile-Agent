@@ -7,6 +7,7 @@ import { OrbState } from '../gateway/events/socket.events.js';
 import { AuthorizationFailure } from '../common/exceptions/authorization.error.js';
 import { ExecutionRepository } from '../repository/execution.repository.js';
 import { AgentRepository } from '../repository/agent.repository.js';
+import { AIProviderRouter } from './provider/ai.router.js';
 
 export enum AgentState {
   QUEUED = 'QUEUED',
@@ -30,7 +31,8 @@ export class AgentRuntime {
     private memoryService: MemoryService,
     private orbGateway: OrbGateway,
     @Inject('ExecutionRepository') private executionRepo: ExecutionRepository,
-    @Inject('AgentRepository') private agentRepo: AgentRepository
+    @Inject('AgentRepository') private agentRepo: AgentRepository,
+    private aiRouter: AIProviderRouter
   ) {}
 
   async executeTask(executionId: string, userId: string) {
@@ -53,11 +55,21 @@ export class AgentRuntime {
       this.orbGateway.emitOrbState(OrbState.EXECUTING);
       this.logger.log(`Execution ${executionId} → RUNNING`);
 
-      // 5. Summarise plan steps as the result
-      const stepSummary = plan.steps
-        .map((s: any, i: number) => `${i + 1}. ${s.description}`)
-        .join('\n');
-      const result = `Completed plan for: "${execution.action}"\n${stepSummary}`;
+      // 5. Actually execute the plan using AI Provider
+      this.orbGateway.emitOrbState(OrbState.SEARCHING); // Optional state update
+      this.logger.log(`Executing step with AI provider...`);
+      
+      const stepSummary = plan.steps.map((s: any, i: number) => `${i + 1}. ${s.description}`).join('\n');
+      const prompt = `You are JACK AGENT. A user has asked you to perform a task.\nTask: ${execution.action}\nPlan steps:\n${stepSummary}\n\nPlease execute this task and provide a final answer or result based on your execution of these steps. Keep it conversational but concise.`;
+      
+      let result = '';
+      try {
+        const llmResponse = await this.aiRouter.route(prompt, 'PRIVATE');
+        result = llmResponse;
+      } catch (err: any) {
+         this.logger.error('AI routing failed:', err);
+         result = 'I encountered an issue executing this task: ' + err.message;
+      }
 
       // 6. Complete
       await this.executionRepo.updateState(executionId, userId, AgentState.COMPLETED);

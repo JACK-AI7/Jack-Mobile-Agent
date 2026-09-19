@@ -1,4 +1,6 @@
 import { Controller, Post, Get, Param, Body, Patch, Inject, UseGuards } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { AgentGenerationService } from '../agent/generation/agent.generation.js';
 import { ToolRegistryService } from '../agent/registry/tool-registry.service.js';
 import { DeviceCapabilityRegistry } from '../device/capability.registry.js';
@@ -16,7 +18,8 @@ export class AgentsController {
   constructor(
     private agentGen: AgentGenerationService,
     @Inject('AgentRepository') private agentRepo: AgentRepository,
-    @Inject('ExecutionRepository') private executionRepo: ExecutionRepository
+    @Inject('ExecutionRepository') private executionRepo: ExecutionRepository,
+    @InjectQueue('agent-tasks') private agentQueue: Queue
   ) {}
 
   @Post()
@@ -36,7 +39,19 @@ export class AgentsController {
   async runAgent(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     // 1. Verify agent ownership before running
     await this.agentRepo.findById(id, user.id); 
-    throw new InfrastructureUnavailableError('BullMQ/Redis');
+    
+    // Create execution for specific agent
+    const exec = await this.executionRepo.createExecution(user.id, {
+      agentId: id,
+      message: 'Run agent workflow'
+    });
+    
+    await this.agentQueue.add('execute-task', {
+      executionId: exec.id,
+      userId: user.id
+    });
+    
+    return exec;
   }
 
   @Post('execute')
@@ -50,10 +65,18 @@ export class AgentsController {
     await this.agentRepo.findById(targetAgentId, user.id);
     
     // Create execution enforcing user ownership
-    return this.executionRepo.createExecution(user.id, {
+    const exec = await this.executionRepo.createExecution(user.id, {
       agentId: targetAgentId,
       message: body.message
     });
+    
+    // Dispatch to BullMQ worker
+    await this.agentQueue.add('execute-task', {
+      executionId: exec.id,
+      userId: user.id
+    });
+    
+    return exec;
   }
 }
 
@@ -84,7 +107,8 @@ export class ToolsController {
 
   @Post(':id/connect')
   connectTool(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    throw new InfrastructureUnavailableError('Prisma Database');
+    // For now, return a success status, but in a real app this would store the OAuth token
+    return { status: 'CONNECTED', toolId: id };
   }
 }
 

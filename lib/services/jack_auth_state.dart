@@ -66,3 +66,10 @@ final authStateProvider = StateNotifierProvider<JackAuthNotifier, JackAuthState>
   final client = ref.watch(authClientProvider);
   return JackAuthNotifier(client, const FlutterSecureStorage());
 });
+
+final userNameProvider = FutureProvider<String?>((ref) async {
+  // Watch auth state to re-trigger on login/logout
+  ref.watch(authStateProvider);
+  final client = ref.watch(authClientProvider);
+  return await client.getUserName();
+});

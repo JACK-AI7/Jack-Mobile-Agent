@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/jack_auth_state.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
@@ -106,6 +108,8 @@ class ProfileScreen extends StatelessWidget {
                   _buildSettingsItem('Appearance', Icons.palette),
                   _buildDivider(),
                   _buildSettingsItem('Security', Icons.lock),
+                  _buildDivider(),
+                  _buildSettingsItem('Logout', Icons.logout, onTap: () => ref.read(authStateProvider.notifier).logout()),
                 ],
               ),
             ),
@@ -115,7 +119,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsItem(String title, IconData icon) {
+  Widget _buildSettingsItem(String title, IconData icon, {VoidCallback? onTap}) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: Container(
@@ -135,7 +139,7 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
-      onTap: () => ref.read(authStateProvider.notifier).logout(),
+      onTap: onTap,
     );
   }
 

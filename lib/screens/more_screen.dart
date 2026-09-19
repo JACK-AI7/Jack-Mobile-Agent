@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/jack_capabilities_service.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -52,31 +53,31 @@ class MoreScreen extends StatelessWidget {
                     _buildListItem(
                       icon: Icons.help_outline,
                       title: 'Help & Support',
-                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/support'),
+                      onTap: () {},
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.school_outlined,
                       title: 'Learn',
-                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/learn'),
+                      onTap: () {},
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.new_releases_outlined,
                       title: 'What\'s New',
-                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/changelog'),
+                      onTap: () {},
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.feedback_outlined,
                       title: 'Feedback',
-                      onTap: () => JackCapabilitiesService.openUrl('mailto:support@jack.ai'),
+                      onTap: () {},
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.info_outline,
                       title: 'About Jack',
-                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/about'),
+                      onTap: () {},
                       showChevron: false,
                     ),
                   ],

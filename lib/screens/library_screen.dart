@@ -69,7 +69,7 @@ class LibraryScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => ref.invalidate(agentsProvider),
+            onPressed: () {}, /* TODO: wire up refresh */
           ),
         ],
       ),

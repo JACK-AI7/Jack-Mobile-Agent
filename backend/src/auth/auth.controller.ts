@@ -27,6 +27,7 @@ interface AuthResponse {
   accessToken: string;
   userId: string;
   email: string;
+  name: string;
 }
 
 @Controller('auth')
@@ -65,7 +66,7 @@ export class AuthController {
       this.logger.log(`User registered: ${user.id}`);
 
       const accessToken = this.signToken(user.id);
-      return { accessToken, userId: user.id, email: user.email };
+      return { accessToken, userId: user.id, email: user.email, name: user.name };
     } catch (e: any) {
       this.logger.error('Registration error:', e);
       throw new BadRequestException(e.message || e.toString());
@@ -94,7 +95,7 @@ export class AuthController {
     this.logger.log(`User authenticated: ${user.id}`);
 
     const accessToken = this.signToken(user.id);
-    return { accessToken, userId: user.id, email: user.email };
+    return { accessToken, userId: user.id, email: user.email, name: user.name };
   }
 
   private signToken(userId: string): string {

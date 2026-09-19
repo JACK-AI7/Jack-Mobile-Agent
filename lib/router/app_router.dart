@@ -134,7 +134,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
           GoRoute(path: AppRoutes.library, builder: (context, state) => const LibraryScreen()),
-          GoRoute(path: AppRoutes.agentBuilder, builder: (context, state) => const AgentBuilderScreen()),
+          GoRoute(path: AppRoutes.agentBuilder, builder: (context, state) => BuilderScreen()),
           GoRoute(path: AppRoutes.tasks, builder: (context, state) => const TasksScreen()),
           GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
         ],

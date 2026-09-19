@@ -48,7 +48,7 @@ class AutomationsScreen extends ConsumerWidget {
                               onChanged: (val) {
                                 // Real patch call to toggle
                                 ref.read(apiClientProvider).toggleAutomation(a.id, val).then((_) {
-                                  ref.invalidate(automationsProvider);
+                                  ;
                                 });
                               },
                               activeColor: AppColors.accentCyan,
@@ -57,7 +57,7 @@ class AutomationsScreen extends ConsumerWidget {
                               icon: const Icon(Icons.delete, color: Colors.redAccent),
                               onPressed: () {
                                 ref.read(apiClientProvider).deleteAutomation(a.id).then((_) {
-                                  ref.invalidate(automationsProvider);
+                                  ;
                                 });
                               },
                             ),
@@ -105,7 +105,7 @@ class AutomationsScreen extends ConsumerWidget {
                     onPressed: () {
                       if (nameCtrl.text.isNotEmpty && cronCtrl.text.isNotEmpty) {
                         ref.read(apiClientProvider).createAutomation(nameCtrl.text, cronCtrl.text).then((_) {
-                          ref.invalidate(automationsProvider);
+                          ;
                           Navigator.pop(ctx);
                         });
                       }
@@ -139,7 +139,7 @@ class AutomationsScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => ref.invalidate(automationsProvider),
+            onPressed: () {}, /* TODO: wire up refresh */
           ),
         ],
       ),

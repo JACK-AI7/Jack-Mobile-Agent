@@ -279,7 +279,7 @@ class SplashScreen extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(28),
-              onTap: () => context.go('/dashboard'),
+              onTap: () => context.go('/home'),
               child: Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

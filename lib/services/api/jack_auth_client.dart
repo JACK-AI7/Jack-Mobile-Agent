@@ -24,6 +24,9 @@ class JackAuthClient {
       
       // Save safely to secure storage
       await _secureStorage.write(key: 'jack_access_token', value: token);
+      if (response.data['name'] != null) {
+        await _secureStorage.write(key: 'jack_user_name', value: response.data['name']);
+      }
       
       if (response.data['refreshToken'] != null) {
         await _secureStorage.write(key: 'jack_refresh_token', value: response.data['refreshToken']);
@@ -51,6 +54,9 @@ class JackAuthClient {
 
       // Persist tokens securely
       await _secureStorage.write(key: 'jack_access_token', value: token);
+      if (response.data['name'] != null) {
+        await _secureStorage.write(key: 'jack_user_name', value: response.data['name']);
+      }
       
       if (response.data['refreshToken'] != null) {
         await _secureStorage.write(key: 'jack_refresh_token', value: response.data['refreshToken']);
@@ -68,6 +74,10 @@ class JackAuthClient {
 
   Future<String?> getAccessToken() async {
     return await _secureStorage.read(key: 'jack_access_token');
+  }
+  
+  Future<String?> getUserName() async {
+    return await _secureStorage.read(key: 'jack_user_name');
   }
 
   Future<void> logout() async {
