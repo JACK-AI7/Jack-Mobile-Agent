@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service.js';
 
 export abstract class ExecutionRepository {
@@ -25,7 +25,7 @@ export class PrismaExecutionRepository implements ExecutionRepository {
 
   async findById(id: string, userId: string): Promise<any> {
     const exec = await this.prisma.task.findFirst({ where: { id, userId } });
-    if (!exec) throw new Error('Execution not found or unauthorized');
+    if (!exec) throw new NotFoundException('Execution not found or unauthorized');
     return exec;
   }
 

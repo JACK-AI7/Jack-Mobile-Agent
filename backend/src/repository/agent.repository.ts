@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service.js';
 
 export abstract class AgentRepository {
@@ -19,7 +19,7 @@ export class PrismaAgentRepository implements AgentRepository {
 
   async findById(id: string, userId: string): Promise<any> {
     const agent = await this.prisma.agent.findFirst({ where: { id, userId } });
-    if (!agent) throw new Error('Agent not found or unauthorized');
+    if (!agent) throw new NotFoundException('Agent not found or unauthorized');
     return agent;
   }
 

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ProviderUnavailableError } from '../../common/exceptions/provider-unavailable.error.js';
-import Groq from 'groq-sdk';
 
 export interface AIProvider {
   name: string;
@@ -13,37 +12,69 @@ export interface AIProvider {
 class GroqProvider implements AIProvider {
   name = 'GROQ';
   trainingUse = false;
-  private client: Groq;
   private readonly logger = new Logger('GroqProvider');
+  private apiKey: string;
 
   constructor(apiKey: string) {
-    this.client = new Groq({ apiKey });
+    this.apiKey = apiKey;
   }
 
   async generate(prompt: string): Promise<string> {
-    const completion = await this.client.chat.completions.create({
-      model: 'llama3-8b-8192',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2048,
-      temperature: 0.7,
-    });
-    return completion.choices[0]?.message?.content || '';
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + this.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 2048,
+          temperature: 0.7,
+        })
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error('Groq API Error: ' + response.status + ' ' + text);
+      }
+      const data = await response.json();
+      return data.choices[0]?.message?.content || '';
+    } catch (err: any) {
+      throw new Error('Groq Fetch Error (generate): ' + err.message);
+    }
   }
 
   async generateStructured(prompt: string, schema: any): Promise<any> {
-    // For structured output we ask the model for JSON
     const structuredPrompt = `${prompt}\n\nRespond ONLY with valid JSON matching this schema: ${JSON.stringify(schema, null, 2)}\nDo not include any explanation, only the JSON object.`;
-    const completion = await this.client.chat.completions.create({
-      model: 'llama3-8b-8192',
-      messages: [{ role: 'user', content: structuredPrompt }],
-      max_tokens: 4096,
-      temperature: 0.3,
-    });
-    const raw = completion.choices[0]?.message?.content || '{}';
-    // Extract JSON from response
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Groq did not return valid JSON');
-    return JSON.parse(jsonMatch[0]);
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + this.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [{ role: 'user', content: structuredPrompt }],
+          max_tokens: 4096,
+          temperature: 0.3,
+          response_format: { type: 'json_object' }
+        })
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error('Groq API Error: ' + response.status + ' ' + text);
+      }
+      const data = await response.json();
+      const raw = data.choices[0]?.message?.content || '{}';
+      
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Groq did not return valid JSON');
+      return JSON.parse(jsonMatch[0]);
+    } catch (err: any) {
+      throw new Error('Groq Fetch Error (generateStructured): ' + err.message);
+    }
   }
 }
 
