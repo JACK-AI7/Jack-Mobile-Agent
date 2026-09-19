@@ -61,8 +61,10 @@ export class AgentsController {
   ) {
     const targetAgentId = body.agentId || 'jack-default';
     
-    // Verify agent belongs to user
-    await this.agentRepo.findById(targetAgentId, user.id);
+    // Verify agent belongs to user if it is not the default
+    if (targetAgentId !== 'jack-default') {
+      await this.agentRepo.findById(targetAgentId, user.id);
+    }
     
     // Create execution enforcing user ownership
     const exec = await this.executionRepo.createExecution(user.id, {
@@ -76,7 +78,12 @@ export class AgentsController {
       userId: user.id
     });
     
-    return exec;
+    return {
+      executionId: exec.id,
+      agentId: targetAgentId,
+      status: exec.status,
+      result: exec.result
+    };
   }
 }
 
