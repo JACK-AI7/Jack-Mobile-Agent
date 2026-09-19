@@ -73,6 +73,18 @@ class GroqProvider implements AIProvider {
       if (!jsonMatch) throw new Error('Groq did not return valid JSON');
       return JSON.parse(jsonMatch[0]);
     } catch (err: any) {
+      if (err.message.includes('model_decommissioned') || err.message.includes('model_not_found')) {
+        try {
+          const mres = await fetch('https://api.groq.com/openai/v1/models', {
+            headers: { 'Authorization': 'Bearer ' + this.apiKey }
+          });
+          const mdata = await mres.json();
+          const models = mdata.data.map((m: any) => m.id).join(', ');
+          throw new Error('Groq Model Error: ' + err.message + ' | Available: ' + models);
+        } catch(e) {
+          throw new Error('Groq Model Error: ' + err.message);
+        }
+      }
       throw new Error('Groq Fetch Error (generateStructured): ' + err.message);
     }
   }
