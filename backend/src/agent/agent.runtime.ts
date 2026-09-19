@@ -81,9 +81,11 @@ export class AgentRuntime {
       return { executionId, status: AgentState.COMPLETED, result };
       } catch (err: any) {
       let errorMessage = err?.message ?? 'Unknown error';
-      if (errorMessage.toLowerCase().includes('connection') || errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('fetch')) {
-          errorMessage = 'AI provider unavailable.';
-      }
+      // if (errorMessage.toLowerCase().includes('connection') || errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('fetch')) {
+      //     errorMessage = 'AI provider unavailable.';
+      // }
+      errorMessage = 'REAL_ERROR: ' + errorMessage;
+
       this.logger.error(`Execution ${executionId} failed: ${errorMessage}`);
 
       await this.executionRepo.updateState(executionId, userId, AgentState.FAILED);
