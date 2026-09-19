@@ -16,10 +16,20 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // --- 100% Crash Proof Global Error Handlers ---
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
+  // ----------------------------------------------
+
   const port = process.env.PORT || 3000;
   // Bind to 0.0.0.0 for Railway
   await app.listen(port, '0.0.0.0');
   
   logger.log(`Application successfully started on port ${port} (Mode: ${process.env.RUN_MODE || 'ALL'})`);
 }
-bootstrap();
+bootstrap().catch(err => console.error("Bootstrap error:", err));
