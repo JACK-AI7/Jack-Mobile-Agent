@@ -40,31 +40,36 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: RegisterDto): Promise<AuthResponse> {
-    if (!body.email || !body.password || !body.name) {
-      throw new BadRequestException('email, password, and name are required');
+    try {
+      if (!body.email || !body.password || !body.name) {
+        throw new BadRequestException('email, password, and name are required');
+      }
+
+      const existing = await this.prisma.user.findUnique({
+        where: { email: body.email },
+      });
+      if (existing) {
+        throw new ConflictException('Email already registered');
+      }
+
+      const passwordHash = await bcrypt.hash(body.password, 12);
+
+      const user = await this.prisma.user.create({
+        data: {
+          email: body.email,
+          name: body.name,
+          passwordHash,
+        },
+      });
+
+      this.logger.log(`User registered: ${user.id}`);
+
+      const accessToken = this.signToken(user.id);
+      return { accessToken, userId: user.id, email: user.email };
+    } catch (e: any) {
+      this.logger.error('Registration error:', e);
+      throw new BadRequestException(e.message || e.toString());
     }
-
-    const existing = await this.prisma.user.findUnique({
-      where: { email: body.email },
-    });
-    if (existing) {
-      throw new ConflictException('Email already registered');
-    }
-
-    const passwordHash = await bcrypt.hash(body.password, 12);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: body.email,
-        name: body.name,
-        passwordHash,
-      },
-    });
-
-    this.logger.log(`User registered: ${user.id}`);
-
-    const accessToken = this.signToken(user.id);
-    return { accessToken, userId: user.id, email: user.email };
   }
 
   @Post('login')
