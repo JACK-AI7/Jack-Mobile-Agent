@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma.service.js';
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 interface RegisterDto {
   email: string;

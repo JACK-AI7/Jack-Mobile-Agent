@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { AuthenticationFailure } from '../common/exceptions/authentication.error.js';
 import { ConfigService } from '@nestjs/config';
 
