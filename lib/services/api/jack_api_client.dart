@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/agent/agent.dart';
 import '../../models/tool/tool_definition.dart';
 import '../../models/agent/jack_agent_request.dart';
+import '../../models/task_model.dart';
+import '../../models/automation_model.dart';
 import '../../config/environment.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -127,6 +129,50 @@ class JackApiClient {
       await _dio.post('/agents/execute/$executionId/reject');
     } on DioException catch (e) {
       throw Exception('Failed to reject execution: ' + e.message.toString());
+    }
+  }
+
+
+  // --- Tasks ---
+  Future<List<TaskModel>> listTasks() async {
+    try {
+      final response = await _dio.get('/tasks');
+      return (response.data as List).map((e) => TaskModel.fromJson(e)).toList();
+    } catch (e) {
+      throw Exception('Failed to load tasks: ');
+    }
+  }
+
+  // --- Automations ---
+  Future<List<AutomationModel>> listAutomations() async {
+    try {
+      final response = await _dio.get('/automations');
+      return (response.data as List).map((e) => AutomationModel.fromJson(e)).toList();
+    } catch (e) {
+      throw Exception('Failed to load automations: ');
+    }
+  }
+
+  Future<void> toggleAutomation(String id, bool isActive) async {
+    try {
+      await _dio.patch('/automations/', data: {'isActive': isActive});
+    } catch (e) {
+      throw Exception('Failed to toggle automation: ');
+    }
+  }
+
+  Future<void> createAutomation(String name, String schedule) async {
+    try {
+      await _dio.post('/automations', data: {'name': name, 'schedule': schedule});
+    } catch (e) {
+      throw Exception('Failed to create automation: ');
+    }
+  }
+  Future<void> deleteAutomation(String id) async {
+    try {
+      await _dio.delete('/automations/');
+    } catch (e) {
+      throw Exception('Failed to delete automation: ');
     }
   }
 }

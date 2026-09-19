@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
-import { JackAuthGuard, AuthenticatedUser } from '../auth/auth.guard.js';
+import { JackAuthGuard } from '../auth/auth.guard.js';
+import type { AuthenticatedUser } from '../auth/auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PrismaService } from '../prisma.service.js';
 

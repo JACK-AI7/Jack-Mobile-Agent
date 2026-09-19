@@ -16,7 +16,7 @@ import '../screens/upgrade_screen.dart';
 import '../screens/more_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
-import '../widgets/bottom_nav.dart';
+import '../widgets/glass_nav_bar.dart';
 import '../services/jack_auth_state.dart';
 
 class AppRoutes {
@@ -57,9 +57,9 @@ class _ShellScaffold extends StatefulWidget {
 class _ShellScaffoldState extends State<_ShellScaffold> {
   static const _tabs = [
     AppRoutes.home,
-    AppRoutes.autonomy,
-    AppRoutes.chat,
     AppRoutes.library,
+    AppRoutes.agentBuilder,
+    AppRoutes.tasks,
     AppRoutes.profile,
   ];
 
@@ -75,7 +75,7 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: widget.child,
-      bottomNavigationBar: JackBottomNav(
+      bottomNavigationBar: GlassNavBar(
         currentIndex: _currentIndex,
         onTap: (i) => context.go(_tabs[i]),
       ),
@@ -117,70 +117,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: AppRoutes.splash,
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.register,
-        builder: (context, state) => const RegisterScreen(),
-      ),
-      ShellRoute(
-        builder: (context, state, child) =>
-            _ShellScaffold(state: state, child: child),
-        routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.autonomy,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AutonomyScreen(),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.chat,
-            pageBuilder: (context, state) => NoTransitionPage(
-              child: ChatScreen(initialQuery: state.extra as String?),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.library,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: LibraryScreen(),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.profile,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ProfileScreen(),
-            ),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: AppRoutes.tasks,
-        builder: (context, state) => const TasksScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.tools,
-        builder: (context, state) => const ToolsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.automations,
-        builder: (context, state) => const AutomationsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.agentBuilder,
-        builder: (context, state) => const AgentBuilderScreen(),
-      ),
+
+
       GoRoute(
         path: AppRoutes.upgrade,
         builder: (context, state) => const UpgradeScreen(),
