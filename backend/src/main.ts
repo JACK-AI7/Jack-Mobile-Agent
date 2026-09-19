@@ -1,9 +1,19 @@
+import { execSync } from 'child_process';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  
+  try {
+    logger.log('Running prisma db push...');
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    logger.log('Prisma db push completed.');
+  } catch (err) {
+    logger.error('Prisma db push failed:', err);
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS securely configurable by env
