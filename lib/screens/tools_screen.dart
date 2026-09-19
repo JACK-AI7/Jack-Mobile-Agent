@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({Key? key}) : super(key: key);
+  const ToolsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

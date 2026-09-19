@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 
 class TaskResultScreen extends StatelessWidget {
   const TaskResultScreen({super.key});

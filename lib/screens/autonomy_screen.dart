@@ -45,17 +45,17 @@ class AutonomyScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00FF88).withOpacity(0.15),
+                          color: const Color(0xFF00FF88).withValues(alpha: 0.15),
                           blurRadius: 50,
                           spreadRadius: 10,
                         ),
                         BoxShadow(
-                          color: const Color(0xFF2B6BFF).withOpacity(0.15),
+                          color: const Color(0xFF2B6BFF).withValues(alpha: 0.15),
                           blurRadius: 50,
                           spreadRadius: 10,
                         ),
                         BoxShadow(
-                          color: const Color(0xFF9B2BFF).withOpacity(0.15),
+                          color: const Color(0xFF9B2BFF).withValues(alpha: 0.15),
                           blurRadius: 50,
                           spreadRadius: 10,
                         ),

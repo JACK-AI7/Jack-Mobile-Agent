@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({Key? key}) : super(key: key);
+  const MoreScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class MoreScreen extends StatelessWidget {
                   color: const Color(0xFF151515),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
                 child: Column(
@@ -52,31 +52,31 @@ class MoreScreen extends StatelessWidget {
                     _buildListItem(
                       icon: Icons.help_outline,
                       title: 'Help & Support',
-                      onTap: () {},
+                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/support'),
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.school_outlined,
                       title: 'Learn',
-                      onTap: () {},
+                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/learn'),
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.new_releases_outlined,
                       title: 'What\'s New',
-                      onTap: () {},
+                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/changelog'),
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.feedback_outlined,
                       title: 'Feedback',
-                      onTap: () {},
+                      onTap: () => JackCapabilitiesService.openUrl('mailto:support@jack.ai'),
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.info_outline,
                       title: 'About Jack',
-                      onTap: () {},
+                      onTap: () => JackCapabilitiesService.openUrl('https://jack.ai/about'),
                       showChevron: false,
                     ),
                   ],
@@ -91,7 +91,7 @@ class MoreScreen extends StatelessWidget {
 
   Widget _buildDivider() {
     return Divider(
-      color: Colors.white.withOpacity(0.05),
+      color: Colors.white.withValues(alpha: 0.05),
       height: 1,
       indent: 56,
     );
@@ -109,7 +109,7 @@ class MoreScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF2B6BFF).withOpacity(0.1),
+          color: const Color(0xFF2B6BFF).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(

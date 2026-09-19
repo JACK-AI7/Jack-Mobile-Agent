@@ -74,7 +74,7 @@ class JackBottomNav extends StatelessWidget {
                         height: 28,
                         decoration: isActive
                             ? BoxDecoration(
-                                color: AppColors.accentCyan.withOpacity(0.12),
+                                color: AppColors.accentCyan.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               )
                             : null,

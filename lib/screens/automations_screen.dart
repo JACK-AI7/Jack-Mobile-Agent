@@ -6,7 +6,7 @@ import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
 class AutomationsScreen extends ConsumerWidget {
-  const AutomationsScreen({Key? key}) : super(key: key);
+  const AutomationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -138,8 +138,8 @@ class AutomationsScreen extends ConsumerWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            onPressed: () {},
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => ref.invalidate(automationsProvider),
           ),
         ],
       ),

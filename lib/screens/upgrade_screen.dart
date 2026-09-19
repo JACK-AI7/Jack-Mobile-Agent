@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class UpgradeScreen extends StatefulWidget {
-  const UpgradeScreen({Key? key}) : super(key: key);
+  const UpgradeScreen({super.key});
 
   @override
   State<UpgradeScreen> createState() => _UpgradeScreenState();
@@ -76,7 +76,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF8A2BE2).withOpacity(0.3),
+                      color: const Color(0xFF8A2BE2).withValues(alpha: 0.3),
                       blurRadius: 30,
                       spreadRadius: 5,
                     ),
@@ -106,7 +106,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2B6BFF).withOpacity(0.2),
+                              color: const Color(0xFF2B6BFF).withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
@@ -140,7 +140,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () => Navigator.pop(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2B6BFF),
                             foregroundColor: Colors.white,

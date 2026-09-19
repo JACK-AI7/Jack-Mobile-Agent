@@ -117,31 +117,34 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-
-
       GoRoute(
-        path: AppRoutes.upgrade,
-        builder: (context, state) => const UpgradeScreen(),
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
-        path: AppRoutes.more,
-        builder: (context, state) => const MoreScreen(),
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: '/dashboard',
-        redirect: (context, state) => AppRoutes.home,
+        path: AppRoutes.register,
+        builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: '/call-log',
-        redirect: (context, state) => AppRoutes.tasks,
+      ShellRoute(
+        builder: (context, state, child) => _ShellScaffold(state: state, child: child),
+        routes: [
+          GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
+          GoRoute(path: AppRoutes.library, builder: (context, state) => const LibraryScreen()),
+          GoRoute(path: AppRoutes.agentBuilder, builder: (context, state) => const AgentBuilderScreen()),
+          GoRoute(path: AppRoutes.tasks, builder: (context, state) => const TasksScreen()),
+          GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
+        ],
       ),
-      GoRoute(
-        path: '/task-result',
-        redirect: (context, state) => AppRoutes.tasks,
-      ),
+      GoRoute(path: AppRoutes.chat, builder: (context, state) => const ChatScreen()),
+      GoRoute(path: AppRoutes.tools, builder: (context, state) => const ToolsScreen()),
+      GoRoute(path: AppRoutes.automations, builder: (context, state) => const AutomationsScreen()),
+      GoRoute(path: AppRoutes.autonomy, builder: (context, state) => const AutonomyScreen()),
+      GoRoute(path: AppRoutes.upgrade, builder: (context, state) => const UpgradeScreen()),
+      GoRoute(path: AppRoutes.more, builder: (context, state) => const MoreScreen()),
     ],
   );
 });
-
-@Deprecated('Use routerProvider instead')
-final goRouter = GoRouter(initialLocation: AppRoutes.splash, routes: []);

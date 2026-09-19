@@ -9,17 +9,17 @@ class GlassNavBar extends StatelessWidget {
     Key? key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF151515).withOpacity(0.5),
+        color: const Color(0xFF151515).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1.5,
         ),
       ),
@@ -57,11 +57,11 @@ class GlassNavBar extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isSelected ? const Color(0xFF2B6BFF).withOpacity(0.2) : Colors.transparent,
+          color: isSelected ? const Color(0xFF2B6BFF).withValues(alpha: 0.2) : Colors.transparent,
           boxShadow: isSelected && isSpecial
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2B6BFF).withOpacity(0.5),
+                    color: const Color(0xFF2B6BFF).withValues(alpha: 0.5),
                     blurRadius: 15,
                     spreadRadius: 2,
                   )

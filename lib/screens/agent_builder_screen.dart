@@ -34,8 +34,8 @@ class BuilderScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFF2B6BFF).withOpacity(0.3),
-                      const Color(0xFF9B2BFF).withOpacity(0.1),
+                      const Color(0xFF2B6BFF).withValues(alpha: 0.3),
+                      const Color(0xFF9B2BFF).withValues(alpha: 0.1),
                       const Color(0xFF0A0A0A),
                     ],
                     stops: const [0.1, 0.5, 1.0],
@@ -49,7 +49,7 @@ class BuilderScreen extends StatelessWidget {
                   color: const Color(0xFF151515),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF2B6BFF).withOpacity(0.4),
+                      color: const Color(0xFF2B6BFF).withValues(alpha: 0.4),
                       blurRadius: 30,
                       spreadRadius: 2,
                     ),
@@ -103,7 +103,7 @@ class BuilderScreen extends StatelessWidget {
                   border: Border.all(color: Colors.white24, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF2B6BFF).withOpacity(0.2),
+                      color: const Color(0xFF2B6BFF).withValues(alpha: 0.2),
                       blurRadius: 10,
                       spreadRadius: 1,
                     ),

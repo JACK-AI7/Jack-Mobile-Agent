@@ -2,11 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/tasks_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/jack_orb.dart';
 
 enum TaskStatus { inProgress, completed }
 
@@ -233,8 +230,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            onPressed: () {},
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => ref.invalidate(tasksProvider),
           ),
         ],
       ),

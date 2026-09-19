@@ -5,7 +5,7 @@ import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
 class LibraryScreen extends ConsumerWidget {
-  const LibraryScreen({Key? key}) : super(key: key);
+  const LibraryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,9 +34,9 @@ class LibraryScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(a.name ?? 'Agent', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            Text(a.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
-                            Text(a.description ?? 'No description', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                            Text(a.description, style: const TextStyle(color: Colors.white54, fontSize: 12)),
                           ],
                         ),
                       );
@@ -68,8 +68,8 @@ class LibraryScreen extends ConsumerWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {},
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => ref.invalidate(agentsProvider),
           ),
         ],
       ),
