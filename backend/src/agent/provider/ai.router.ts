@@ -60,7 +60,7 @@ class GroqProvider implements AIProvider {
       const data = await response.json();
       return data.choices[0]?.message?.content || '';
     } catch (err: any) {
-      throw new Error('Groq Fetch Error (generate): ' + err.message);
+      throw new Error(`Groq Fetch Error (generate) [model=${model}]: ` + err.message);
     }
   }
 
@@ -77,7 +77,7 @@ class GroqProvider implements AIProvider {
         body: JSON.stringify({
           model: model,
           messages: [{ role: 'user', content: structuredPrompt }],
-          max_tokens: 4096,
+          max_tokens: 1024,
           temperature: 0.3,
           response_format: { type: 'json_object' }
         })
@@ -93,7 +93,7 @@ class GroqProvider implements AIProvider {
       if (!jsonMatch) throw new Error('Groq did not return valid JSON');
       return JSON.parse(jsonMatch[0]);
     } catch (err: any) {
-      throw new Error('Groq Fetch Error (generateStructured): ' + err.message);
+      throw new Error(`Groq Fetch Error (generateStructured) [model=${model}]: ` + err.message);
     }
   }
 }
