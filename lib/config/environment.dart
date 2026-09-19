@@ -8,7 +8,8 @@ class EnvironmentConfig {
   // or that the developer sets up port forwarding.
   // Replace the production URL with your actual Railway generated domain.
   static const String localApiUrl = 'http://localhost:3000';
-  static const String prodApiUrl = 'https://jack-api-production.up.railway.app'; 
+  static const String prodApiUrl = 'https://jack-mobile-agent-production.up.railway.app';
+  static const String devApiUrl = 'http://10.0.2.2:3000'; // Android emulator local loopback
 
   static String get apiUrl {
     if (isProduction) {
