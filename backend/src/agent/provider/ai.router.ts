@@ -20,25 +20,52 @@ class GroqProvider implements AIProvider {
     this.apiKey = apiKey;
   }
 
+  /** Models known to work reliably within Groq context limits, in preference order. */
+  private static readonly MODEL_ALLOWLIST = [
+    'llama3-groq-8b-8192-tool-use-preview',
+    'llama-3.1-8b-instant',
+    'meta-llama/llama-4-scout-17b-16e-instruct',
+    'compound-beta',
+  ];
+
   private async getModel(): Promise<string> {
     if (this.activeModel) return this.activeModel;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch('https://api.groq.com/openai/v1/models', {
-        headers: { 'Authorization': 'Bearer ' + this.apiKey }
+        headers: { 'Authorization': 'Bearer ' + this.apiKey },
+        signal: controller.signal,
       });
       const data = await res.json();
-      if (data && data.data && data.data.length > 0) {
-        // prefer a small model if possible, otherwise first
-        const model = data.data.find((m: any) => m.id.includes('8b') || m.id.includes('7b'))?.id || data.data[0].id;
-        this.activeModel = model;
-        return model;
+      if (data && Array.isArray(data.data) && data.data.length > 0) {
+        const available: string[] = data.data.map((m: any) => m.id as string);
+        // Prefer models in the allowlist (first match wins)
+        for (const preferred of GroqProvider.MODEL_ALLOWLIST) {
+          if (available.includes(preferred)) {
+            this.activeModel = preferred;
+            this.logger.log(`Selected model from allowlist: ${preferred}`);
+            return preferred;
+          }
+        }
+        // None matched allowlist — fall back to first available
+        this.activeModel = available[0];
+        this.logger.warn(`No allowlisted model found; using first available: ${available[0]}`);
+        return available[0];
       }
-    } catch(e) {}
-    return 'llama3-8b-8192'; // absolute fallback
+    } catch (e: any) {
+      this.logger.warn(`getModel() fetch failed (${e.message}); using hardcoded fallback`);
+    } finally {
+      clearTimeout(timer);
+    }
+    // Absolute fallback — smallest known-safe model
+    return 'llama-3.1-8b-instant';
   }
 
   async generate(prompt: string): Promise<string> {
     const model = await this.getModel();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -51,7 +78,8 @@ class GroqProvider implements AIProvider {
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 2048,
           temperature: 0.7,
-        })
+        }),
+        signal: controller.signal,
       });
       if (!response.ok) {
         const text = await response.text();
@@ -61,12 +89,16 @@ class GroqProvider implements AIProvider {
       return data.choices[0]?.message?.content || '';
     } catch (err: any) {
       throw new Error(`Groq Fetch Error (generate) [model=${model}]: ` + err.message);
+    } finally {
+      clearTimeout(timer);
     }
   }
 
   async generateStructured(prompt: string, schema: any): Promise<any> {
     const model = await this.getModel();
     const structuredPrompt = `${prompt}\n\nRespond ONLY with valid JSON matching this schema: ${JSON.stringify(schema, null, 2)}\nDo not include any explanation, only the JSON object.`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -80,7 +112,8 @@ class GroqProvider implements AIProvider {
           max_tokens: 1024,
           temperature: 0.3,
           response_format: { type: 'json_object' }
-        })
+        }),
+        signal: controller.signal,
       });
       if (!response.ok) {
         const text = await response.text();
@@ -94,6 +127,8 @@ class GroqProvider implements AIProvider {
       return JSON.parse(jsonMatch[0]);
     } catch (err: any) {
       throw new Error(`Groq Fetch Error (generateStructured) [model=${model}]: ` + err.message);
+    } finally {
+      clearTimeout(timer);
     }
   }
 }
