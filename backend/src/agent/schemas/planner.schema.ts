@@ -9,7 +9,7 @@ export const ToolInvocationSchema = z.object({
 export const PlanStepSchema = z.object({
   id: z.string(),
   description: z.string(),
-  tool: ToolInvocationSchema.optional(),
+  tool: ToolInvocationSchema.nullable().optional(),
   requiresApproval: z.boolean().default(false),
   dependencies: z.array(z.string()).default([])
 });
