@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, Patch, Inject, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, Delete, Inject, UseGuards } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { AgentGenerationService } from '../agent/generation/agent.generation.js';
@@ -33,6 +33,21 @@ export class AgentsController {
   @Get()
   async getAgents(@CurrentUser() user: AuthenticatedUser) {
     return this.agentRepo.findMany(user.id);
+  }
+
+  @Get(':id')
+  async getAgent(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.agentRepo.findById(id, user.id);
+  }
+
+  @Patch(':id')
+  async updateAgent(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() body: any) {
+    return this.agentRepo.update(id, user.id, body);
+  }
+
+  @Delete(':id')
+  async deleteAgent(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.agentRepo.delete(id, user.id);
   }
 
   @Post(':id/run')
