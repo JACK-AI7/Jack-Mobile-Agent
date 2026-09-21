@@ -1,3 +1,4 @@
+﻿// ignore_for_file: constant_identifier_names
 class Agent {
   final String id;
   final String name;

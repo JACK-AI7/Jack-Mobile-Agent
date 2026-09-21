@@ -134,12 +134,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
           GoRoute(path: AppRoutes.library, builder: (context, state) => const LibraryScreen()),
-          GoRoute(path: AppRoutes.agentBuilder, builder: (context, state) => BuilderScreen()),
+          GoRoute(path: AppRoutes.agentBuilder, builder: (context, state) => const AutonomyScreen()),
           GoRoute(path: AppRoutes.tasks, builder: (context, state) => const TasksScreen()),
           GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
         ],
       ),
-      GoRoute(path: AppRoutes.chat, builder: (context, state) => const ChatScreen()),
+      GoRoute(
+        path: AppRoutes.chat,
+        builder: (context, state) =>
+            ChatScreen(initialQuery: state.extra as String?),
+      ),
       GoRoute(path: AppRoutes.tools, builder: (context, state) => const ToolsScreen()),
       GoRoute(path: AppRoutes.automations, builder: (context, state) => const AutomationsScreen()),
       GoRoute(path: AppRoutes.autonomy, builder: (context, state) => const AutonomyScreen()),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/jack_capabilities_service.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -32,14 +31,13 @@ class MoreScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Everything else. Organized.',
+                'All settings and configuration.',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
                 ),
               ),
               const SizedBox(height: 32),
-              
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFF151515),
@@ -51,33 +49,54 @@ class MoreScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildListItem(
+                      icon: Icons.person_outline,
+                      title: 'Account',
+                      subtitle: 'Manage your account',
+                      onTap: () {},
+                      iconColor: const Color(0xFF2B6BFF),
+                    ),
+                    _buildDivider(),
+                    _buildListItem(
+                      icon: Icons.settings_outlined,
+                      title: 'General',
+                      onTap: () {},
+                      iconColor: const Color(0xFF2B6BFF),
+                    ),
+                    _buildDivider(),
+                    _buildListItem(
+                      icon: Icons.palette_outlined,
+                      title: 'Appearance',
+                      onTap: () {},
+                      iconColor: const Color(0xFF2B6BFF),
+                    ),
+                    _buildDivider(),
+                    _buildListItem(
+                      icon: Icons.shield_outlined,
+                      title: 'Data & Privacy',
+                      onTap: () {},
+                      iconColor: const Color(0xFF2B6BFF),
+                    ),
+                    _buildDivider(),
+                    _buildListItem(
                       icon: Icons.help_outline,
                       title: 'Help & Support',
                       onTap: () {},
-                    ),
-                    _buildDivider(),
-                    _buildListItem(
-                      icon: Icons.school_outlined,
-                      title: 'Learn',
-                      onTap: () {},
-                    ),
-                    _buildDivider(),
-                    _buildListItem(
-                      icon: Icons.new_releases_outlined,
-                      title: 'What\'s New',
-                      onTap: () {},
-                    ),
-                    _buildDivider(),
-                    _buildListItem(
-                      icon: Icons.feedback_outlined,
-                      title: 'Feedback',
-                      onTap: () {},
+                      iconColor: const Color(0xFF2B6BFF),
                     ),
                     _buildDivider(),
                     _buildListItem(
                       icon: Icons.info_outline,
-                      title: 'About Jack',
+                      title: 'About',
                       onTap: () {},
+                      iconColor: const Color(0xFF2B6BFF),
+                    ),
+                    _buildDivider(),
+                    _buildListItem(
+                      icon: Icons.logout,
+                      title: 'Log Out',
+                      onTap: () {},
+                      iconColor: Colors.redAccent,
+                      textColor: Colors.redAccent,
                       showChevron: false,
                     ),
                   ],
@@ -101,7 +120,10 @@ class MoreScreen extends StatelessWidget {
   Widget _buildListItem({
     required IconData icon,
     required String title,
+    String? subtitle,
     required VoidCallback onTap,
+    required Color iconColor,
+    Color textColor = Colors.white,
     bool showChevron = true,
   }) {
     return ListTile(
@@ -110,23 +132,32 @@ class MoreScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF2B6BFF).withValues(alpha: 0.1),
+          color: iconColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           icon,
-          color: const Color(0xFF2B6BFF),
+          color: iconColor,
           size: 24,
         ),
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
       ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+              ),
+            )
+          : null,
       trailing: showChevron
           ? const Icon(
               Icons.chevron_right,

@@ -17,9 +17,11 @@ class JackRealtimeClient {
   Stream<AgentToolStartedEvent> get toolStateStream => _toolStateController.stream;
   Stream<Map<String, dynamic>> get approvalRequestStream => _approvalRequestController.stream;
 
+  bool get isConnected => _socket?.connected ?? false;
+
   void connect(String url, String token) {
     if (_socket != null) return;
-    
+
     _socket = io.io(url, io.OptionBuilder()
       .setTransports(['websocket'])
       .setAuth({'token': token})
@@ -37,8 +39,16 @@ class JackRealtimeClient {
       _orbStateController.add(JackOrbState.OFFLINE);
     });
 
-    // Handle strongly typed Orb State transitions
+    // Handle Orb State transitions (legacy event name)
     _socket!.on('orb_state', (data) {
+      if (data is Map<String, dynamic> && data['state'] != null) {
+        final parsedState = parseOrbState(data['state'].toString());
+        _orbStateController.add(parsedState);
+      }
+    });
+
+    // Handle Orb State transitions (canonical backend event name)
+    _socket!.on('agent.state', (data) {
       if (data is Map<String, dynamic> && data['state'] != null) {
         final parsedState = parseOrbState(data['state'].toString());
         _orbStateController.add(parsedState);
@@ -64,6 +74,17 @@ class JackRealtimeClient {
     });
 
     _socket!.connect();
+  }
+
+  /// Re-connects using a fresh token. If a socket already exists it is torn
+  /// down first so the new auth token is applied correctly.
+  void reconnect(String url, String token) {
+    if (_socket != null) {
+      _socket?.disconnect();
+      _socket?.dispose();
+      _socket = null;
+    }
+    connect(url, token);
   }
 
   void disconnect() {

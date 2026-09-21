@@ -5,7 +5,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -328,11 +327,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         message: msg,
       ));
 
+      final text = response.result ?? "I am processing your request.";
       final jackMsg = _Message(
         id: response.executionId,
-        text: response.result ?? "I am processing your request.",
+        text: text,
         isUser: false,
         timestamp: DateTime.now(),
+        taskData: _TaskExecutionData.tryParse(text),
       );
 
       if (mounted) {
@@ -523,8 +524,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
-              Color(0xFF00E5FF),
-              Color(0xFF00A2FF),
+              AppColors.accentBlue,
+              AppColors.accentViolet,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -537,7 +538,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.accentCyan.withValues(alpha: 0.25),
+              color: AppColors.accentViolet.withValues(alpha: 0.25),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -551,7 +552,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF040410),
+                color: Colors.white,
                 height: 1.4,
               ),
             ),
@@ -561,7 +562,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
-                color: const Color(0x99040410),
+                color: Colors.white70,
               ),
             ),
           ],

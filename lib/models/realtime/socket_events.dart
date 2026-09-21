@@ -1,3 +1,4 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/realtime/socket_events.dart
 export 'jack_orb_state.dart';
 

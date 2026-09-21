@@ -1,3 +1,4 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/realtime/agent_execution_state.dart
 enum AgentExecutionState {
   QUEUED,

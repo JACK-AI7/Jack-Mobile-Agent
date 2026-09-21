@@ -62,6 +62,20 @@ class AgentExecutionController extends StateNotifier<AgentRealtimeState> {
     _realtimeClient.connect(EnvironmentConfig.apiUrl, token);
   }
 
+  /// Connects only when a token is available and the socket is not already up.
+  /// Safe to call from multiple callsites (e.g. auth notifier + screen init).
+  void connectIfAuthenticated(String token) {
+    if (!_realtimeClient.isConnected) {
+      _realtimeClient.connect(EnvironmentConfig.apiUrl, token);
+    }
+  }
+
+  /// Tears down the existing socket and reconnects with a fresh token.
+  /// Use after a token refresh to re-authenticate the socket.
+  void reconnect(String token) {
+    _realtimeClient.reconnect(EnvironmentConfig.apiUrl, token);
+  }
+
   void disconnect() {
     _realtimeClient.disconnect();
   }

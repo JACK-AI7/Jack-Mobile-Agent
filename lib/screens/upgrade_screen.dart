@@ -38,7 +38,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Unlock more power with Jack Pro',
+                'Choose the plan that\'s right for you.',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
@@ -58,12 +58,78 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildToggleButton('Monthly', !isYearly),
-                      _buildToggleButton('Yearly (Save 20%)', isYearly),
+                      _buildToggleButton('Annually', isYearly),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 32),
+              
+              // Free Card
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151515),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Free',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '\$0 / mo',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildBenefitItem('Basic AI models', isPro: false),
+                    const SizedBox(height: 12),
+                    _buildBenefitItem('Standard daily limits', isPro: false),
+                    const SizedBox(height: 12),
+                    _buildBenefitItem('Community support', isPro: false),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2A2A2A),
+                          disabledBackgroundColor: const Color(0xFF2A2A2A),
+                          disabledForegroundColor: Colors.white54,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Current Plan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
               
               // Pro Card
               Container(
@@ -96,7 +162,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Pro',
+                            'Jack Pro',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -110,7 +176,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
-                              'Premium',
+                              'Popular',
                               style: TextStyle(
                                 color: Color(0xFF2B6BFF),
                                 fontWeight: FontWeight.bold,
@@ -119,50 +185,47 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                           )
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       Text(
-                        isYearly ? '\$153 / year' : '\$16 / month',
+                        isYearly ? '\$99.99 / yr' : '\$9.99 / mo',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 36,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildBenefitItem('Unlimited automations'),
+                      _buildBenefitItem('Advanced AI models', isPro: true),
                       const SizedBox(height: 12),
-                      _buildBenefitItem('Advanced tools'),
+                      _buildBenefitItem('Unlimited daily limits', isPro: true),
                       const SizedBox(height: 12),
-                      _buildBenefitItem('Priority support'),
+                      _buildBenefitItem('Priority support', isPro: true),
                       const SizedBox(height: 12),
-                      _buildBenefitItem('Custom AI models'),
+                      _buildBenefitItem('Early access to features', isPro: true),
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Pro upgrade is coming soon!')),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2B6BFF),
-                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Upgrade to Pro',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward),
-                            ],
+                          child: const Text(
+                            'Upgrade to Pro',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -170,6 +233,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -181,14 +245,14 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          isYearly = text.contains('Yearly');
+          isYearly = text == 'Annually';
         });
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2B6BFF) : Colors.transparent,
+          color: isSelected ? const Color(0xFF2B2B2B) : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
         ),
         child: Text(
@@ -202,19 +266,19 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     );
   }
 
-  Widget _buildBenefitItem(String text) {
+  Widget _buildBenefitItem(String text, {required bool isPro}) {
     return Row(
       children: [
-        const Icon(
+        Icon(
           Icons.check_circle,
-          color: Color(0xFF2B6BFF),
+          color: isPro ? const Color(0xFF2B6BFF) : Colors.white54,
           size: 20,
         ),
         const SizedBox(width: 12),
         Text(
           text,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: isPro ? Colors.white : Colors.white70,
             fontSize: 16,
           ),
         ),

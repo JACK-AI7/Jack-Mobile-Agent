@@ -1,3 +1,4 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/realtime/jack_orb_state.dart
 enum JackOrbState {
   IDLE,

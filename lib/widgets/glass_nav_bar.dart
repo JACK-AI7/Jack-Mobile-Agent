@@ -1,77 +1,184 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
+/// Floating pill-shaped glass navigation bar.
+///
+/// Sits at the bottom of the screen with [SafeArea] padding respected by the
+/// parent scaffold.  Five icon-only tabs; the active tab shows the icon in
+/// [AppColors.accentCyan] with a small glowing indicator dot beneath it.
 class GlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
   const GlassNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
   });
 
+  // ── Tab definitions ─────────────────────────────────────────────────────────
+
+  static const List<_NavTab> _tabs = [
+    _NavTab(
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
+    ),
+    _NavTab(
+      icon: Icons.layers_outlined,
+      activeIcon: Icons.layers_rounded,
+      label: 'Library',
+    ),
+    _NavTab(
+      icon: Icons.add_circle_outline_rounded,
+      activeIcon: Icons.add_circle_rounded,
+      label: 'Builder',
+    ),
+    _NavTab(
+      icon: Icons.checklist_outlined,
+      activeIcon: Icons.checklist_rounded,
+      label: 'Tasks',
+    ),
+    _NavTab(
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
+    ),
+  ];
+
+  // ── Build ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFF151515).withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1.5,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildNavItem(Icons.home_outlined, Icons.home_filled, 0),
-                _buildNavItem(Icons.explore_outlined, Icons.explore, 1),
-                _buildNavItem(Icons.star_border, Icons.star, 2, isSpecial: true),
-                _buildNavItem(Icons.task_outlined, Icons.task, 3),
-                _buildNavItem(Icons.person_outline, Icons.person, 4),
-              ],
+    return Padding(
+      // 24 px on left, right, and bottom; sits above the system nav area.
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: SizedBox(
+        height: 72,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(40),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                // Dark glass fill – slightly lighter than the deep background.
+                color: AppColors.navBackground.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(40),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(_tabs.length, (i) {
+                  return _NavItem(
+                    tab: _tabs[i],
+                    isActive: currentIndex == i,
+                    onTap: () => onTap(i),
+                  );
+                }),
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildNavItem(IconData outline, IconData filled, int index, {bool isSpecial = false}) {
-    final isSelected = currentIndex == index;
-    final color = isSelected ? const Color(0xFF2B6BFF) : Colors.white54;
-    
-    return GestureDetector(
-      onTap: () => onTap(index),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSelected ? const Color(0xFF2B6BFF).withValues(alpha: 0.2) : Colors.transparent,
-          boxShadow: isSelected && isSpecial
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF2B6BFF).withValues(alpha: 0.5),
-                    blurRadius: 15,
-                    spreadRadius: 2,
-                  )
-                ]
-              : null,
-        ),
-        child: Icon(
-          isSelected ? filled : outline,
-          color: color,
-          size: isSpecial ? 32 : 28,
+// ── Internal widgets ─────────────────────────────────────────────────────────
+
+/// Immutable data class describing one navigation tab.
+class _NavTab {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label; // kept for semantics / accessibility
+
+  const _NavTab({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
+}
+
+/// Single tappable icon with animated active state and glow indicator dot.
+class _NavItem extends StatelessWidget {
+  final _NavTab tab;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.tab,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: tab.label,
+      button: true,
+      selected: isActive,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 56,
+          height: 72,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ── Icon ───────────────────────────────────────────────────────
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Icon(
+                  isActive ? tab.activeIcon : tab.icon,
+                  key: ValueKey(isActive),
+                  size: 26,
+                  color: isActive ? AppColors.accentCyan : Colors.white38,
+                  shadows: isActive
+                      ? [
+                          Shadow(
+                            color: AppColors.accentCyan.withValues(alpha: 0.55),
+                            blurRadius: 12,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              // ── Active indicator dot ────────────────────────────────────────
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                width: isActive ? 5 : 0,
+                height: isActive ? 5 : 0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentCyan,
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: AppColors.accentCyan.withValues(alpha: 0.80),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

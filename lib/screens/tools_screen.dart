@@ -1,41 +1,137 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
-class ToolsScreen extends StatelessWidget {
+import '../services/api/jack_api_client.dart';
+import '../models/tool/tool_definition.dart';
+import '../theme/app_colors.dart';
+import '../widgets/glass_card.dart';
+
+final toolsProvider = FutureProvider.autoDispose<List<ToolDefinition>>((ref) async {
+  final client = ref.watch(apiClientProvider);
+  return await client.listTools();
+});
+
+class ToolsScreen extends ConsumerStatefulWidget {
   const ToolsScreen({super.key});
 
   @override
+  ConsumerState<ToolsScreen> createState() => _ToolsScreenState();
+}
+
+class _ToolsScreenState extends ConsumerState<ToolsScreen> {
+  String _filter = 'All';
+
+  @override
   Widget build(BuildContext context) {
+    final toolsAsyncValue = ref.watch(toolsProvider);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A0A),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tools', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            Text('Connect and use powerful tools.', style: TextStyle(color: Colors.white70, fontSize: 14)),
-          ],
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          _buildFilterRow(),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _buildToolCard('Google', Icons.g_mobiledata, const Color(0xFF4285F4), true),
-                _buildToolCard('GitHub', Icons.code, const Color(0xFF333333), true),
-                _buildToolCard('Notion', Icons.description, const Color(0xFFEBEBEB), false, iconDark: true),
-                _buildToolCard('Slack', Icons.hub, const Color(0xFF4A154B), true),
-                _buildToolCard('Gmail', Icons.mail, const Color(0xFFEA4335), false),
-              ],
-            ),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0.4, -0.6),
+            radius: 1.2,
+            colors: [Color(0xFF12082A), Color(0xFF05050F)],
           ),
-        ],
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tools',
+                      style: GoogleFonts.cormorantGaramond(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Connect and use powerful tools.',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white54,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildFilterRow(),
+              const SizedBox(height: 16),
+              Expanded(
+                child: toolsAsyncValue.when(
+                  data: (tools) {
+                    final filteredTools = tools.where((t) {
+                      if (_filter == 'All') return true;
+                      if (_filter == 'Connected') return t.availability == 'AVAILABLE';
+                      if (_filter == 'Available') return t.availability != 'AVAILABLE';
+                      return true;
+                    }).toList();
+
+                    if (filteredTools.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'No tools found.',
+                          style: GoogleFonts.inter(color: Colors.white54, fontSize: 14),
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      itemCount: filteredTools.length,
+                      separatorBuilder: (context, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return _buildToolCard(filteredTools[index]);
+                      },
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: AppColors.accentCyan),
+                  ),
+                  error: (err, stack) => Center(
+                    child: Text(
+                      'Error loading tools',
+                      style: GoogleFonts.inter(color: AppColors.error),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -44,19 +140,36 @@ class ToolsScreen extends StatelessWidget {
     final filters = ['All', 'Connected', 'Available'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: filters.map((filter) {
-          final isSelected = filter == 'All';
+          final isSelected = _filter == filter;
           return Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: Chip(
-              label: Text(filter),
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white70),
-              backgroundColor: isSelected ? const Color(0xFF2B6BFF) : const Color(0xFF151515),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide.none,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _filter = filter;
+                });
+                HapticFeedback.lightImpact();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.accentCyan.withValues(alpha: 0.15) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? Colors.transparent : Colors.white10,
+                  ),
+                ),
+                child: Text(
+                  filter,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? AppColors.accentCyan : Colors.white54,
+                  ),
+                ),
               ),
             ),
           );
@@ -65,40 +178,103 @@ class ToolsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildToolCard(String name, IconData icon, Color color, bool isConnected, {bool iconDark = false}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF151515),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: iconDark ? Colors.black : Colors.white, size: 28),
-        ),
-        title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: isConnected ? Colors.transparent : const Color(0xFF2B6BFF),
-            borderRadius: BorderRadius.circular(20),
-            border: isConnected ? Border.all(color: Colors.white24) : null,
-          ),
-          child: Text(
-            isConnected ? 'Connected' : 'Connect',
-            style: TextStyle(
-              color: isConnected ? Colors.white70 : Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+  Widget _buildToolCard(ToolDefinition tool) {
+    final isConnected = tool.availability == 'AVAILABLE';
+    
+    IconData iconData = Icons.extension_rounded;
+    Color iconColor = AppColors.accentCyan;
+    
+    final lowerName = tool.name.toLowerCase();
+    if (lowerName.contains('google') || lowerName.contains('gmail')) {
+      iconData = Icons.email_rounded;
+      iconColor = const Color(0xFF4285F4);
+    } else if (lowerName.contains('github')) {
+      iconData = Icons.code_rounded;
+      iconColor = const Color(0xFFEBEBEB);
+    } else if (lowerName.contains('notion')) {
+      iconData = Icons.description_rounded;
+      iconColor = const Color(0xFFEBEBEB);
+    } else if (lowerName.contains('slack')) {
+      iconData = Icons.chat_rounded;
+      iconColor = const Color(0xFFE01E5A);
+    } else if (lowerName.contains('jira')) {
+      iconData = Icons.assignment_rounded;
+      iconColor = const Color(0xFF2684FF);
+    }
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              iconData,
+              color: iconColor,
+              size: 24,
             ),
           ),
-        ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tool.name,
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                if (tool.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    tool.description,
+                    style: GoogleFonts.inter(
+                      color: Colors.white54,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Connection setup is currently in development.'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isConnected ? Colors.transparent : AppColors.accentCyan.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: isConnected ? Border.all(color: Colors.white10) : Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                isConnected ? 'Connected' : 'Connect',
+                style: GoogleFonts.inter(
+                  color: isConnected ? Colors.white54 : AppColors.accentCyan,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

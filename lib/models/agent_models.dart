@@ -1,10 +1,11 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/agent_models.dart
-// ─────────────────────────────────────────────────────────────────────────────
-// Pure data models — zero Flutter dependencies.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Pure data models â€” zero Flutter dependencies.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import '../capsules/core_models.dart';
 
-// ─── Agent Status ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Agent Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 enum AgentStatus {
   idle,
   listening,
@@ -14,7 +15,7 @@ enum AgentStatus {
   error,
 }
 
-// ─── OS Command types ─────────────────────────────────────────────────────────
+// â”€â”€â”€ OS Command types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 enum OsCommandType { intent, click, type, scroll, screenshot, complete, unknown }
 
 /// A single OS automation command received over the WebSocket.
@@ -49,7 +50,7 @@ class OsCommand {
       case OsCommandType.screenshot:
         return 'Capturing screen...';
       case OsCommandType.complete:
-        return '✓ Done';
+        return 'âœ“ Done';
       case OsCommandType.unknown:
         return target.isNotEmpty ? target : 'Executing...';
     }
@@ -102,7 +103,7 @@ class OsCommand {
   }
 }
 
-// ─── Bus result ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Bus result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class BusResult {
   const BusResult({
     required this.operator_,
@@ -121,7 +122,7 @@ class BusResult {
       );
 }
 
-// ─── Central agent state ──────────────────────────────────────────────────────
+// â”€â”€â”€ Central agent state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class AgentState {
   const AgentState({
     this.status          = AgentStatus.idle,
@@ -209,7 +210,7 @@ class AgentState {
 }
 
 
-// ─── Bixby Card Data ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Bixby Card Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class BixbyCardData {
   final String type; // 'flashlight', 'battery', 'volume', 'weather', 'alarm', 'timer', 'action', 'quick_settings'
   final String title;
@@ -224,7 +225,7 @@ class BixbyCardData {
   });
 }
 
-// ─── Model definitions ────────────────────────────────────────────────────────
+// â”€â”€â”€ Model definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class ModelDef {
   const ModelDef({
     required this.id,
@@ -240,14 +241,14 @@ const List<ModelDef> kModelDefs = [
   ModelDef(
     id: 'nemotron',
     title: 'Nemotron-3 Omni (NVIDIA)',
-    subtitle: 'OpenRouter · Real-Data Agent',
+    subtitle: 'OpenRouter Â· Real-Data Agent',
     filename: 'nemotron_api',
     downloadUrl: '',
   ),
   ModelDef(
     id: 'JACK Backend',
     title: 'JACK Backend Cloud (Llama 3.3 & Llama 3.1)',
-    subtitle: 'API · Ultra-Fast',
+    subtitle: 'API Â· Ultra-Fast',
     filename: 'JACK Backend_api',
     downloadUrl: '',
   ),

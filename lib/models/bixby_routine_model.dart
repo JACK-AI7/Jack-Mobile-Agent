@@ -1,8 +1,9 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/bixby_routine_model.dart
 //
-// Jack — Multi-Action "Quick Commands" Engine (Bixby Macros)
+// Jack â€” Multi-Action "Quick Commands" Engine (Bixby Macros)
 // Binds short trigger phrases to ordered sequential action pipelines.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class QuickCommand {
   final String triggerPhrase;

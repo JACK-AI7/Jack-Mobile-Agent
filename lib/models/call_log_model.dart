@@ -1,3 +1,4 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/call_log_model.dart
 //
 // Represents a call Jack observed (incoming/outgoing/missed)

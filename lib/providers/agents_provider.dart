@@ -6,3 +6,8 @@ final agentsProvider = FutureProvider.autoDispose<List<Agent>>((ref) async {
   final client = ref.read(apiClientProvider);
   return client.listAgents();
 });
+
+final agentDeleteProvider = FutureProvider.autoDispose.family<void, String>((ref, id) async {
+  final client = ref.read(apiClientProvider);
+  await client.deleteAgent(id);
+});

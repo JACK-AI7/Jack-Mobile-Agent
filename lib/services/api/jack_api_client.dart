@@ -21,8 +21,8 @@ class JackApiClient {
   JackApiClient(this._secureStorage) {
     _dio = Dio(BaseOptions(
       baseUrl: EnvironmentConfig.apiUrl,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
     ));
 
     _dio.interceptors.add(
@@ -93,6 +93,14 @@ class JackApiClient {
     }
   }
 
+  Future<void> deleteAgent(String id) async {
+    try {
+      await _dio.delete('/agents/$id');
+    } on DioException catch (e) {
+      throw Exception('Failed to delete agent: ${e.message}');
+    }
+  }
+
   Future<JackAgentResponse> executeAgent(JackAgentRequest request) async {
     try {
       final response = await _dio.post('/agents/execute', data: request.toJson());
@@ -143,6 +151,15 @@ class JackApiClient {
     }
   }
 
+  Future<TaskModel> getTask(String id) async {
+    try {
+      final response = await _dio.get('/tasks/$id');
+      return TaskModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception('Failed to get task: ${e.message}');
+    }
+  }
+
   // --- Automations ---
   Future<List<AutomationModel>> listAutomations() async {
     try {
@@ -155,7 +172,7 @@ class JackApiClient {
 
   Future<void> toggleAutomation(String id, bool isActive) async {
     try {
-      await _dio.patch('/automations/', data: {'isActive': isActive});
+      await _dio.patch('/automations/$id', data: {'isActive': isActive});
     } catch (e) {
       throw Exception('Failed to toggle automation: ');
     }
@@ -170,7 +187,7 @@ class JackApiClient {
   }
   Future<void> deleteAutomation(String id) async {
     try {
-      await _dio.delete('/automations/');
+      await _dio.delete('/automations/$id');
     } catch (e) {
       throw Exception('Failed to delete automation: ');
     }

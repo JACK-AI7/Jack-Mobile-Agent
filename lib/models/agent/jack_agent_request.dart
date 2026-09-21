@@ -1,3 +1,4 @@
+﻿// ignore_for_file: constant_identifier_names
 // lib/models/agent/jack_agent_request.dart
 class JackAgentRequest {
   final String requestId;
