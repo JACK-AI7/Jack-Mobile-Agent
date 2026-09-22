@@ -35,17 +35,20 @@ class AppColors {
 
   // ── Orb gradient stops ─────────────────────────────────────────────────────
   static const List<Color> orbGradient = [
-    Color(0xFF00D4FF),
-    Color(0xFF7C3AED),
-    Color(0xFFEC4899),
-    Color(0xFF06B6D4),
+    Color(0xFF00E5FF), // Cyan
+    Color(0xFF2979FF), // Electric Blue
+    Color(0xFF8B5CF6), // Violet
+    Color(0xFFFF2B6B), // Magenta / Pink
+    Color(0xFFFFB800), // Subtle warm yellow
+    Color(0xFF00E5FF), // Edge Cyan
   ];
 
   static const List<Color> orbGradientShift = [
-    Color(0xFF3B82F6),
-    Color(0xFF7C3AED),
-    Color(0xFF00D4FF),
-    Color(0xFFEC4899),
+    Color(0xFF2979FF),
+    Color(0xFF8B5CF6),
+    Color(0xFFFF2B6B),
+    Color(0xFFFFB800),
+    Color(0xFF00E5FF),
   ];
 
   // ── Navigation ─────────────────────────────────────────────────────────────

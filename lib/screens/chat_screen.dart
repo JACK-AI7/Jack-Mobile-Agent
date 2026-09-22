@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -21,12 +22,14 @@ class _ProductCardItem {
   final String title;
   final String price;
   final String rating;
+  final String? imageAsset;
   final IconData icon = Icons.laptop_chromebook_rounded;
 
   const _ProductCardItem({
     required this.title,
     required this.price,
     required this.rating,
+    this.imageAsset,
   });
 }
 
@@ -93,11 +96,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             title: 'Lenovo LOQ 15',
             price: '\$799',
             rating: '★ 4.6 (1.2k reviews)',
+            imageAsset: 'assets/images/laptop_loq.svg',
           ),
           _ProductCardItem(
             title: 'ASUS TUF A15',
             price: '\$899',
             rating: '★ 4.5 (856 reviews)',
+            imageAsset: 'assets/images/laptop_tuf.svg',
           ),
         ],
         timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
@@ -544,16 +549,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             Container(
                               height: 64,
                               width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF19172B),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Center(
-                                child: Icon(
-                                  prod.icon,
-                                  color: AppColors.accentCyan,
-                                  size: 36,
-                                ),
+                                child: prod.imageAsset != null
+                                    ? SvgPicture.asset(
+                                        prod.imageAsset!,
+                                        fit: BoxFit.contain,
+                                      )
+                                    : Icon(
+                                        prod.icon,
+                                        color: AppColors.accentCyan,
+                                        size: 36,
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 10),

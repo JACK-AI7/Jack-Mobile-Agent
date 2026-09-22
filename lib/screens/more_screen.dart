@@ -182,9 +182,11 @@ class MoreScreen extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -208,10 +210,11 @@ class MoreScreen extends StatelessWidget {
           fontSize: 12,
         ),
       ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.white30,
-        size: 20,
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: Colors.white30,
+          size: 20,
+        ),
       ),
     );
   }

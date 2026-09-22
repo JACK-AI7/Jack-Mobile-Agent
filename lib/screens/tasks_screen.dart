@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../design/jack_components.dart';
 import '../providers/tasks_provider.dart';
 import '../theme/app_colors.dart';
-import '../widgets/glass_card.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -214,68 +214,15 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
+                    child: JackTaskCard(
+                      title: task['title'] as String,
+                      subtitle: task['subtitle'] as String,
+                      isCompleted: isDone,
+                      iconColor: iconColor,
                       onTap: () {
                         HapticFeedback.lightImpact();
                         context.push('/chat', extra: 'Details for ${task['title']}');
                       },
-                      child: GlassCard(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            // Leading Status Icon
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: iconColor.withValues(alpha: 0.15),
-                              ),
-                              child: Icon(
-                                isDone
-                                    ? Icons.check_circle_rounded
-                                    : Icons.radio_button_checked_rounded,
-                                color: iconColor,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-
-                            // Task Title & Subtitle
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    task['title'] as String,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    task['subtitle'] as String,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white54,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Trailing Chevron
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white30,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   );
                 },

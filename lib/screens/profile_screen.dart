@@ -267,36 +267,39 @@ class ProfileScreen extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.white70, size: 20),
         ),
-        child: Icon(icon, color: Colors.white70, size: 20),
-      ),
-      title: Text(
-        title,
-        style: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 14.5,
-          fontWeight: FontWeight.w600,
+        title: Text(
+          title,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 14.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.inter(
-          color: Colors.white54,
-          fontSize: 12,
+        subtitle: Text(
+          subtitle,
+          style: GoogleFonts.inter(
+            color: Colors.white54,
+            fontSize: 12,
+          ),
         ),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.white30,
-        size: 20,
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: Colors.white30,
+          size: 20,
+        ),
       ),
     );
   }

@@ -167,9 +167,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final realtimeState = ref.watch(agentExecutionProvider);
     final orbState = _isListening
         ? OrbState.listening
-        : (realtimeState.orbState == JackOrbState.THINKING
+        : (realtimeState.orbState == JackOrbState.THINKING ||
+                realtimeState.orbState == JackOrbState.PLANNING
             ? OrbState.thinking
-            : OrbState.idle);
+            : (realtimeState.orbState == JackOrbState.EXECUTING ||
+                    realtimeState.orbState == JackOrbState.USING_TOOL ||
+                    realtimeState.orbState == JackOrbState.SEARCHING
+                ? OrbState.working
+                : (realtimeState.orbState == JackOrbState.SUCCESS
+                    ? OrbState.success
+                    : (realtimeState.orbState == JackOrbState.ERROR
+                        ? OrbState.error
+                        : OrbState.idle))));
 
     final userNameAsync = ref.watch(userNameProvider);
     final displayName = userNameAsync.when(

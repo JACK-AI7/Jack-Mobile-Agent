@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../design/jack_components.dart';
 import '../theme/app_colors.dart';
-import '../widgets/glass_card.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -29,6 +29,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       {
         'id': 'google',
         'name': 'Google',
+        'svgAsset': 'assets/logos/google.svg',
         'icon': Icons.g_mobiledata_rounded,
         'iconColor': const Color(0xFF4285F4),
         'connected': true,
@@ -36,6 +37,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       {
         'id': 'github',
         'name': 'GitHub',
+        'svgAsset': 'assets/logos/github.svg',
         'icon': Icons.code_rounded,
         'iconColor': Colors.white,
         'connected': true,
@@ -43,6 +45,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       {
         'id': 'notion',
         'name': 'Notion',
+        'svgAsset': 'assets/logos/notion.svg',
         'icon': Icons.description_rounded,
         'iconColor': const Color(0xFFFFAA00),
         'connected': false,
@@ -50,6 +53,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       {
         'id': 'slack',
         'name': 'Slack',
+        'svgAsset': 'assets/logos/slack.svg',
         'icon': Icons.tag_rounded,
         'iconColor': const Color(0xFFE01E5A),
         'connected': false,
@@ -57,6 +61,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       {
         'id': 'gmail',
         'name': 'Gmail',
+        'svgAsset': 'assets/logos/gmail.svg',
         'icon': Icons.mail_rounded,
         'iconColor': const Color(0xFFEA4335),
         'connected': true,
@@ -185,7 +190,12 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
+                    child: JackToolCard(
+                      name: tool['name'] as String,
+                      svgAsset: tool['svgAsset'] as String?,
+                      fallbackIcon: tool['icon'] as IconData?,
+                      fallbackColor: tool['iconColor'] as Color?,
+                      isConnected: isConnected,
                       onTap: () {
                         HapticFeedback.lightImpact();
                         setState(() => tool['connected'] = !isConnected);
@@ -202,66 +212,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
                           ),
                         );
                       },
-                      child: GlassCard(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            // Leading icon container
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF141320),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                tool['icon'] as IconData,
-                                color: tool['iconColor'] as Color,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-
-                            // Tool Name & Status
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    tool['name'] as String,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    isConnected ? 'Connected' : 'Connect',
-                                    style: GoogleFonts.inter(
-                                      color: isConnected
-                                          ? Colors.white54
-                                          : AppColors.accentCyan,
-                                      fontSize: 12,
-                                      fontWeight: isConnected
-                                          ? FontWeight.w400
-                                          : FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Trailing Chevron
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white30,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   );
                 },

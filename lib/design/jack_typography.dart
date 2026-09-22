@@ -80,6 +80,8 @@ class JackTypography {
     );
   }
 
+  static TextStyle cardTitle({Color color = JackColors.textPrimary}) => listTitle(color: color);
+
   /// List item or card subtitle
   static TextStyle listSubtitle({Color color = JackColors.textSecondary}) {
     return GoogleFonts.inter(
@@ -89,6 +91,8 @@ class JackTypography {
       color: color,
     );
   }
+
+  static TextStyle cardSubtitle({Color color = JackColors.textSecondary}) => listSubtitle(color: color);
 
   /// Button label
   static TextStyle button({Color color = Colors.black, FontWeight weight = FontWeight.w600}) {

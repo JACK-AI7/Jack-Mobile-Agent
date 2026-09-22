@@ -101,14 +101,20 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Center(
-                            child: Text(
-                              'Monthly',
-                              style: GoogleFonts.inter(
-                                color: !_isYearly ? Colors.black : Colors.white70,
-                                fontSize: 13,
-                                fontWeight: !_isYearly
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  'Monthly',
+                                  style: GoogleFonts.inter(
+                                    color: !_isYearly ? Colors.black : Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: !_isYearly
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -129,43 +135,50 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Yearly',
-                                  style: GoogleFonts.inter(
-                                    color: _isYearly
-                                        ? Colors.black
-                                        : Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: _isYearly
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _isYearly
-                                        ? Colors.black.withValues(alpha: 0.15)
-                                        : const Color(0xFF1E1B38),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Save 20%',
-                                    style: GoogleFonts.inter(
-                                      color: _isYearly
-                                          ? Colors.black
-                                          : AppColors.accentCyan,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Yearly',
+                                      style: GoogleFonts.inter(
+                                        color: _isYearly
+                                            ? Colors.black
+                                            : Colors.white70,
+                                        fontSize: 13,
+                                        fontWeight: _isYearly
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: _isYearly
+                                            ? Colors.black.withValues(alpha: 0.15)
+                                            : const Color(0xFF1E1B38),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Save 20%',
+                                        style: GoogleFonts.inter(
+                                          color: _isYearly
+                                              ? Colors.black
+                                              : AppColors.accentCyan,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -286,26 +299,31 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFC7D7FE),
                           foregroundColor: const Color(0xFF0F0E1E),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(26),
                           ),
                           elevation: 0,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Upgrade to Pro',
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0F0E1E),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Upgrade to Pro',
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F0E1E),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.arrow_forward_rounded,
-                                size: 18, color: Color(0xFF0F0E1E)),
-                          ],
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_forward_rounded,
+                                  size: 18, color: Color(0xFF0F0E1E)),
+                            ],
+                          ),
                         ),
                       ),
                     ),

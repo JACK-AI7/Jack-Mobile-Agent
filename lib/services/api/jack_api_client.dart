@@ -128,7 +128,7 @@ class JackApiClient {
     try {
       await _dio.post('/agents/execute/$executionId/approve');
     } on DioException catch (e) {
-      throw Exception('Failed to approve execution: ' + e.message.toString());
+      throw Exception('Failed to approve execution: ${e.message}');
     }
   }
 
@@ -136,7 +136,7 @@ class JackApiClient {
     try {
       await _dio.post('/agents/execute/$executionId/reject');
     } on DioException catch (e) {
-      throw Exception('Failed to reject execution: ' + e.message.toString());
+      throw Exception('Failed to reject execution: ${e.message}');
     }
   }
 

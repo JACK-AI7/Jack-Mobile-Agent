@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../design/jack_components.dart';
 import '../theme/app_colors.dart';
-import '../widgets/glass_card.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -183,66 +183,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
+                    child: JackAgentCard(
+                      title: item['title'] as String,
+                      subtitle: item['subtitle'] as String,
+                      icon: item['icon'] as IconData,
+                      iconColor: item['iconColor'] as Color,
                       onTap: () {
                         HapticFeedback.lightImpact();
                         context.push('/chat', extra: 'Run ${item['title']}');
                       },
-                      child: GlassCard(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            // Leading icon container
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF141320),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                item['icon'] as IconData,
-                                color: item['iconColor'] as Color,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-
-                            // Agent Name & Subtitle
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['title'] as String,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    item['subtitle'] as String,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white54,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Trailing Chevron
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white30,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   );
                 },

@@ -17,8 +17,8 @@ void main() {
         ),
       ),
     );
-
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     // Verify header exists
     expect(find.text('Tasks'), findsOneWidget);

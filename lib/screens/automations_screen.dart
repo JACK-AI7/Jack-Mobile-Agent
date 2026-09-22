@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../design/jack_components.dart';
 import '../services/api/jack_api_client.dart';
 import '../theme/app_colors.dart';
-import '../widgets/glass_card.dart';
 
 class AutomationsScreen extends ConsumerStatefulWidget {
   const AutomationsScreen({super.key});
@@ -197,86 +197,33 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: GlassCard(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Leading rounded icon container
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF141320),
-                              borderRadius: BorderRadius.circular(12),
+                    child: JackAutomationCard(
+                      icon: auto['icon'] as IconData,
+                      iconColor: auto['iconColor'] as Color,
+                      title: auto['title'] as String,
+                      subtitle: auto['subtitle'] as String,
+                      enabled: enabled,
+                      onToggle: (val) async {
+                        HapticFeedback.lightImpact();
+                        setState(() => auto['enabled'] = val);
+                        try {
+                          await ref.read(apiClientProvider).toggleAutomation(auto['id'] as String, val);
+                        } catch (_) {}
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                val
+                                    ? '${auto['title']} activated'
+                                    : '${auto['title']} paused',
+                              ),
+                              backgroundColor: AppColors.surfaceElevated,
+                              duration: const Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
                             ),
-                            child: Icon(
-                              auto['icon'] as IconData,
-                              color: auto['iconColor'] as Color,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-
-                          // Title and schedule
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  auto['title'] as String,
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  auto['subtitle'] as String,
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white54,
-                                    fontSize: 11.5,
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Toggle Switch
-                          Switch(
-                            value: enabled,
-                            onChanged: (val) async {
-                              HapticFeedback.lightImpact();
-                              setState(() => auto['enabled'] = val);
-                              try {
-                                await ref.read(apiClientProvider).toggleAutomation(auto['id'] as String, val);
-                              } catch (_) {}
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      val
-                                          ? '${auto['title']} activated'
-                                          : '${auto['title']} paused',
-                                    ),
-                                    backgroundColor: AppColors.surfaceElevated,
-                                    duration: const Duration(seconds: 1),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            },
-                            activeTrackColor:
-                                AppColors.accentCyan.withValues(alpha: 0.5),
-                            activeThumbColor: AppColors.accentCyan,
-                            inactiveTrackColor: Colors.white12,
-                            inactiveThumbColor: Colors.white38,
-                          ),
-                        ],
-                      ),
+                          );
+                        }
+                      },
                     ),
                   );
                 },
