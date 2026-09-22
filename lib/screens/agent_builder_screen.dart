@@ -312,16 +312,23 @@ class _BuilderScreenState extends State<BuilderScreen>
                   height: 46,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF13131F),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        (node['color'] as Color),
+                        (node['color'] as Color).withValues(alpha: 0.78),
+                      ],
+                    ),
                     border: Border.all(
-                      color: (node['color'] as Color).withValues(alpha: 0.6),
-                      width: 1.5,
+                      color: Colors.white.withValues(alpha: 0.25),
+                      width: 1.0,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (node['color'] as Color).withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        spreadRadius: 1,
+                        color: (node['color'] as Color).withValues(alpha: 0.45),
+                        blurRadius: 14,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),

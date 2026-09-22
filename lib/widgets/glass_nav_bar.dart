@@ -28,13 +28,13 @@ class GlassNavBar extends StatelessWidget {
       label: 'Explore',
     ),
     _NavTab(
-      icon: Icons.auto_awesome_outlined,
-      activeIcon: Icons.auto_awesome_rounded,
-      label: 'Builder',
+      icon: Icons.flare_rounded,
+      activeIcon: Icons.flare_rounded,
+      label: '',
     ),
     _NavTab(
-      icon: Icons.check_circle_outline_rounded,
-      activeIcon: Icons.check_circle_rounded,
+      icon: Icons.shopping_bag_outlined,
+      activeIcon: Icons.shopping_bag_rounded,
       label: 'Tasks',
     ),
     _NavTab(
@@ -106,6 +106,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasLabel = tab.label.isNotEmpty;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -117,7 +118,7 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(
               isActive ? tab.activeIcon : tab.icon,
-              size: 22,
+              size: hasLabel ? 22 : 26,
               color: isActive ? AppColors.accentCyan : Colors.white38,
               shadows: isActive
                   ? [
@@ -128,15 +129,17 @@ class _NavItem extends StatelessWidget {
                     ]
                   : null,
             ),
-            const SizedBox(height: 3),
-            Text(
-              tab.label,
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? AppColors.accentCyan : Colors.white38,
+            if (hasLabel) ...[
+              const SizedBox(height: 3),
+              Text(
+                tab.label,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  color: isActive ? AppColors.accentCyan : Colors.white38,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

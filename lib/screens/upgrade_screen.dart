@@ -284,10 +284,10 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B5CF6),
-                          foregroundColor: Colors.white,
+                          backgroundColor: const Color(0xFFC7D7FE),
+                          foregroundColor: const Color(0xFF0F0E1E),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(26),
                           ),
                           elevation: 0,
                         ),
@@ -298,11 +298,13 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                               'Upgrade to Pro',
                               style: GoogleFonts.inter(
                                 fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0F0E1E),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.arrow_forward_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_rounded,
+                                size: 18, color: Color(0xFF0F0E1E)),
                           ],
                         ),
                       ),

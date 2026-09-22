@@ -126,7 +126,7 @@ class MoreScreen extends StatelessWidget {
                       context,
                       icon: Icons.info_outline_rounded,
                       title: 'About Jack',
-                      subtitle: 'Version 1.0.1+2',
+                      subtitle: 'Version 1.0.0',
                       onTap: () {
                         HapticFeedback.lightImpact();
                         showDialog(

@@ -232,12 +232,19 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
                           letterSpacing: -1.0,
                         ),
                       ),
-                      const SizedBox(height: 2),
                       Text(
-                        'Autonomy score',
+                        'Autonomy',
                         style: GoogleFonts.inter(
                           color: Colors.white70,
-                          fontSize: 12.5,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Text(
+                        'score',
+                        style: GoogleFonts.inter(
+                          color: Colors.white54,
+                          fontSize: 12,
                           fontWeight: FontWeight.w400,
                         ),
                       ),

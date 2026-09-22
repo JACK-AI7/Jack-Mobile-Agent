@@ -173,9 +173,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final userNameAsync = ref.watch(userNameProvider);
     final displayName = userNameAsync.when(
-      data: (name) => (name != null && name.trim().isNotEmpty) ? name.trim() : 'User',
-      loading: () => '...',
-      error: (err, stack) => 'User',
+      data: (name) => (name != null && name.trim().isNotEmpty) ? name.trim() : 'Easin',
+      loading: () => 'Easin',
+      error: (err, stack) => 'Easin',
     );
 
     return Scaffold(
