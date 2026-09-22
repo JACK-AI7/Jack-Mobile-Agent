@@ -28,13 +28,13 @@ class GlassNavBar extends StatelessWidget {
       label: 'Explore',
     ),
     _NavTab(
-      icon: Icons.flare_rounded,
-      activeIcon: Icons.flare_rounded,
+      icon: Icons.auto_awesome_rounded,
+      activeIcon: Icons.auto_awesome_rounded,
       label: '',
     ),
     _NavTab(
-      icon: Icons.shopping_bag_outlined,
-      activeIcon: Icons.shopping_bag_rounded,
+      icon: Icons.task_alt_outlined,
+      activeIcon: Icons.task_alt_rounded,
       label: 'Tasks',
     ),
     _NavTab(
@@ -69,6 +69,7 @@ class GlassNavBar extends StatelessWidget {
                   return _NavItem(
                     tab: _tabs[i],
                     isActive: currentIndex == i,
+                    index: i,
                     onTap: () => onTap(i),
                   );
                 }),
@@ -96,17 +97,66 @@ class _NavTab {
 class _NavItem extends StatelessWidget {
   final _NavTab tab;
   final bool isActive;
+  final int index;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.tab,
     required this.isActive,
+    required this.index,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool hasLabel = tab.label.isNotEmpty;
+    final bool isCenter = index == 2;
+
+    if (isCenter) {
+      // Special glowing orb center button — matches reference design
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 64,
+          height: 68,
+          child: Center(
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF8B5CF6),
+                    Color(0xFF00E5FF),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.5),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Icon(
+                tab.activeIcon,
+                size: 22,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,

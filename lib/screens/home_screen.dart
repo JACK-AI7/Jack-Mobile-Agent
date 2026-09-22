@@ -369,11 +369,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 14),
+
+                // Quick-action suggestion chips matching reference
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Row(
+                    children: [
+                      _buildSuggestionChip('🔍 Search web', () => _submitQuery('Search the web for latest AI news')),
+                      const SizedBox(width: 8),
+                      _buildSuggestionChip('📅 Set reminder', () => _submitQuery('Set a reminder for tomorrow morning')),
+                      const SizedBox(width: 8),
+                      _buildSuggestionChip('📊 Analyze data', () => _submitQuery('Help me analyze some data')),
+                      const SizedBox(width: 8),
+                      _buildSuggestionChip('✉️ Write email', () => _submitQuery('Help me write a professional email')),
+                      const SizedBox(width: 8),
+                      _buildSuggestionChip('🛒 Shop deals', () => _submitQuery('Find me the best deals online today')),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 20),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFF151522).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: Colors.white70,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

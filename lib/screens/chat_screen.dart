@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -22,14 +21,12 @@ class _ProductCardItem {
   final String title;
   final String price;
   final String rating;
-  final String? imageAsset;
   final IconData icon = Icons.laptop_chromebook_rounded;
 
   const _ProductCardItem({
     required this.title,
     required this.price,
     required this.rating,
-    this.imageAsset,
   });
 }
 
@@ -70,7 +67,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isListening = false;
   bool _isThinking = false;
 
-  late final List<_ChatMessage> _messages;
+  final List<_ChatMessage> _messages = [];
 
   @override
   void initState() {
@@ -78,37 +75,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _initTts();
     _initSpeech();
 
-    // Default conversation matching Screen 06 exactly
-    _messages = [
-      _ChatMessage(
-        id: 'msg_1',
-        text: 'Find me the best laptop deals under \$1000 for AI/ML development.',
-        isUser: true,
-        timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
-      ),
-      _ChatMessage(
-        id: 'msg_2',
-        text:
-            'I found some great options for you. These laptops offer the best performance for AI/ML development under \$1000.',
-        isUser: false,
-        products: const [
-          _ProductCardItem(
-            title: 'Lenovo LOQ 15',
-            price: '\$799',
-            rating: '★ 4.6 (1.2k reviews)',
-            imageAsset: 'assets/images/laptop_loq.svg',
-          ),
-          _ProductCardItem(
-            title: 'ASUS TUF A15',
-            price: '\$899',
-            rating: '★ 4.5 (856 reviews)',
-            imageAsset: 'assets/images/laptop_tuf.svg',
-          ),
-        ],
-        timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
-      ),
-    ];
-
+    // Start fresh — no fake pre-loaded messages.
+    // If launched with an initial query (from home screen or tasks), send it immediately.
     if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _sendMessage(widget.initialQuery!.trim());
@@ -341,18 +309,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             const SizedBox(height: 12),
 
-            // Messages Stream
+            // Messages Stream — or empty state
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                itemCount: _messages.length,
-                itemBuilder: (context, i) {
-                  final msg = _messages[i];
-                  return _buildMessageItem(msg);
-                },
-              ),
+              child: _messages.isEmpty && !_isThinking
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, i) {
+                        final msg = _messages[i];
+                        return _buildMessageItem(msg);
+                      },
+                    ),
             ),
 
             // Thinking indicator
@@ -450,6 +420,71 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final suggestions = [
+      'Find me the best laptop deals under \$1000',
+      'Summarize the latest AI news',
+      'Write a professional email to my team',
+      'Analyze my spending patterns',
+      'Plan a 3-day trip to Bali',
+    ];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            'What can I help you with?',
+            style: GoogleFonts.inter(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...suggestions.map((s) => GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _sendMessage(s);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141320),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          s,
+                          style: GoogleFonts.inter(
+                            color: Colors.white70,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white24,
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+        ],
       ),
     );
   }
@@ -555,16 +590,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Center(
-                                child: prod.imageAsset != null
-                                    ? SvgPicture.asset(
-                                        prod.imageAsset!,
-                                        fit: BoxFit.contain,
-                                      )
-                                    : Icon(
-                                        prod.icon,
-                                        color: AppColors.accentCyan,
-                                        size: 36,
-                                      ),
+                                child: Icon(
+                                  prod.icon,
+                                  color: AppColors.accentCyan,
+                                  size: 36,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 10),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jack/screens/splash_screen.dart';
@@ -124,7 +124,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         await tester.pumpWidget(buildTestHarness(const ProfileScreen()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('Jack Agent'), findsOneWidget);
+        expect(find.text('Profile'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
 

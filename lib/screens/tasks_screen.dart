@@ -1,6 +1,6 @@
 // lib/screens/tasks_screen.dart
 //
-// 09. Tasks — Real-time task tracking
+// 09. Tasks — Real tasks from backend only. Zero fake data.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,83 +22,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Running', 'Completed'];
 
-  late List<Map<String, dynamic>> _tasks;
-
-  @override
-  void initState() {
-    super.initState();
-    _tasks = [
-      {
-        'id': 'task_1',
-        'title': 'Laptop research',
-        'subtitle': 'In progress • 2 min ago',
-        'status': 'Running',
-        'isCompleted': false,
-        'iconColor': const Color(0xFF00FF88),
-      },
-      {
-        'id': 'task_2',
-        'title': 'Summarize article',
-        'subtitle': 'Completed • 1 hour ago',
-        'status': 'Completed',
-        'isCompleted': true,
-        'iconColor': const Color(0xFF00FF88),
-      },
-      {
-        'id': 'task_3',
-        'title': 'Create presentation',
-        'subtitle': 'Completed • 3 hours ago',
-        'status': 'Completed',
-        'isCompleted': true,
-        'iconColor': const Color(0xFF00FF88),
-      },
-      {
-        'id': 'task_4',
-        'title': 'Analyze dataset',
-        'subtitle': 'In progress • 5 hours ago',
-        'status': 'Running',
-        'isCompleted': false,
-        'iconColor': const Color(0xFF9B2BFF),
-      },
-      {
-        'id': 'task_5',
-        'title': 'Plan vacation',
-        'subtitle': 'Completed • 1 day ago',
-        'status': 'Completed',
-        'isCompleted': true,
-        'iconColor': const Color(0xFF00E5FF),
-      },
-    ];
+  String _formatTimeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} hr ago';
+    return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
   }
 
   @override
   Widget build(BuildContext context) {
-    final tasksAsync = ref.watch(tasksProvider);
-    final List<Map<String, dynamic>> activeList = tasksAsync.maybeWhen(
-      data: (backendList) {
-        if (backendList.isNotEmpty) {
-          return backendList.map((t) {
-            final isDone = t.status.toUpperCase() == 'COMPLETED';
-            return {
-              'id': t.id,
-              'title': t.title,
-              'subtitle': '${t.status.toLowerCase()} • task id #${t.id.substring(0, t.id.length > 6 ? 6 : t.id.length)}',
-              'status': isDone ? 'Completed' : 'Running',
-              'isCompleted': isDone,
-              'iconColor': isDone ? const Color(0xFF00FF88) : const Color(0xFF9B2BFF),
-            };
-          }).toList();
-        }
-        return _tasks;
-      },
-      orElse: () => _tasks,
-    );
-
-    final filtered = activeList.where((t) {
-      if (_selectedFilter == 1) return t['status'] == 'Running';
-      if (_selectedFilter == 2) return t['status'] == 'Completed';
-      return true;
-    }).toList();
+    final asyncTasks = ref.watch(tasksProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF07070A),
@@ -126,15 +60,21 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             color: Colors.white70,
           ),
         ),
+        actions: [
+          // Pull-to-refresh button
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 20),
+            onPressed: () => ref.invalidate(tasksProvider),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // ── Header
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -160,7 +100,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
             const SizedBox(height: 12),
 
-            // Segmented Filters: [All] [Running] [Completed]
+            // ── Filter tabs: [All] [Running] [Completed]
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
@@ -187,9 +127,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                             style: GoogleFonts.inter(
                               color: active ? Colors.black : Colors.white70,
                               fontSize: 12.5,
-                              fontWeight: active
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
+                              fontWeight:
+                                  active ? FontWeight.w700 : FontWeight.w500,
                             ),
                           ),
                         ),
@@ -202,31 +141,203 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
             const SizedBox(height: 16),
 
-            // Task list matching Screen 09
+            // ── Real task data only
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  final task = filtered[index];
-                  final isDone = task['isCompleted'] as bool;
-                  final iconColor = task['iconColor'] as Color;
+              child: asyncTasks.when(
+                loading: () => const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentCyan),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading tasks...',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                error: (err, _) => _buildErrorState(
+                  err.toString().replaceAll('Exception: ', ''),
+                ),
+                data: (tasks) {
+                  // Apply status filter
+                  final filtered = tasks.where((t) {
+                    final isDone = t.status.toUpperCase() == 'COMPLETED';
+                    if (_selectedFilter == 1) return !isDone; // Running
+                    if (_selectedFilter == 2) return isDone;  // Completed
+                    return true; // All
+                  }).toList();
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: JackTaskCard(
-                      title: task['title'] as String,
-                      subtitle: task['subtitle'] as String,
-                      isCompleted: isDone,
-                      iconColor: iconColor,
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        context.push('/chat', extra: 'Details for ${task['title']}');
-                      },
-                    ),
+                  if (tasks.isEmpty) {
+                    return _buildEmptyState();
+                  }
+
+                  if (filtered.isEmpty) {
+                    return _buildEmptyFilterState(_filters[_selectedFilter]);
+                  }
+
+                  return ListView.builder(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final task = filtered[index];
+                      final isDone = task.status.toUpperCase() == 'COMPLETED';
+                      final timeAgo = _formatTimeAgo(task.updatedAt);
+                      final statusText =
+                          isDone ? 'Completed • $timeAgo' : 'In progress • $timeAgo';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: JackTaskCard(
+                          title: task.title,
+                          subtitle: statusText,
+                          isCompleted: isDone,
+                          iconColor: isDone
+                              ? const Color(0xFF00FF88)
+                              : const Color(0xFF9B2BFF),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            context.push('/chat',
+                                extra: task.result != null && task.result!.isNotEmpty
+                                    ? 'Task result: ${task.result}'
+                                    : 'Show details for task: ${task.title}');
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: Colors.white24, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Could not load tasks',
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message.contains('Authentication')
+                  ? 'Please log in again to view your tasks.'
+                  : 'Backend is unreachable. Check your connection.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                  color: Colors.white38, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton(
+              onPressed: () => ref.invalidate(tasksProvider),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                    color: AppColors.accentCyan.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text('Retry',
+                  style: GoogleFonts.inter(color: AppColors.accentCyan)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.task_alt_outlined, color: Colors.white24, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'No tasks yet',
+              style: GoogleFonts.inter(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ask Jack to do something on the home screen\nand your tasks will appear here in real time.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                  color: Colors.white38, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => context.go('/home'),
+              icon: const Icon(Icons.home_rounded, size: 18),
+              label: Text('Ask Jack',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentCyan,
+                foregroundColor: Colors.black,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterState(String filter) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              filter == 'Running'
+                  ? Icons.hourglass_empty_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: Colors.white24,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No $filter tasks',
+              style: GoogleFonts.inter(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              filter == 'Running'
+                  ? 'No tasks are currently running.'
+                  : 'No completed tasks yet.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                  color: Colors.white38, fontSize: 13, height: 1.4),
             ),
           ],
         ),

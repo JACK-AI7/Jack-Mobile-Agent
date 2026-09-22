@@ -77,7 +77,7 @@ class SplashScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 58,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/home'),
+                  onPressed: () => context.go('/login'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,

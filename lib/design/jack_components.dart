@@ -105,6 +105,7 @@ class JackGlassContainer extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double borderRadius;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final Color? borderColor;
 
   const JackGlassContainer({
@@ -113,6 +114,7 @@ class JackGlassContainer extends StatelessWidget {
     this.padding,
     this.borderRadius = JackRadii.card,
     this.onTap,
+    this.onLongPress,
     this.borderColor,
   });
 
@@ -137,9 +139,10 @@ class JackGlassContainer extends StatelessWidget {
       ),
     );
 
-    if (onTap != null) {
+    if (onTap != null || onLongPress != null) {
       return GestureDetector(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: content,
       );
     }
@@ -421,6 +424,7 @@ class JackAgentCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const JackAgentCard({
     super.key,
@@ -429,12 +433,14 @@ class JackAgentCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     return JackGlassCard(
       onTap: onTap,
+      onLongPress: onLongPress,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
