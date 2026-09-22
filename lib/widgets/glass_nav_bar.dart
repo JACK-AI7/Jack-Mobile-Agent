@@ -1,12 +1,9 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
-/// Floating pill-shaped glass navigation bar.
-///
-/// Sits at the bottom of the screen with [SafeArea] padding respected by the
-/// parent scaffold.  Five icon-only tabs; the active tab shows the icon in
-/// [AppColors.accentCyan] with a small glowing indicator dot beneath it.
+/// Floating pill-shaped glass navigation bar matching the reference design.
 class GlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -17,8 +14,6 @@ class GlassNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  // ── Tab definitions ─────────────────────────────────────────────────────────
-
   static const List<_NavTab> _tabs = [
     _NavTab(
       icon: Icons.home_outlined,
@@ -26,18 +21,18 @@ class GlassNavBar extends StatelessWidget {
       label: 'Home',
     ),
     _NavTab(
-      icon: Icons.layers_outlined,
-      activeIcon: Icons.layers_rounded,
-      label: 'Library',
+      icon: Icons.explore_outlined,
+      activeIcon: Icons.explore_rounded,
+      label: 'Explore',
     ),
     _NavTab(
-      icon: Icons.add_circle_outline_rounded,
-      activeIcon: Icons.add_circle_rounded,
+      icon: Icons.auto_awesome_outlined,
+      activeIcon: Icons.auto_awesome_rounded,
       label: 'Builder',
     ),
     _NavTab(
-      icon: Icons.checklist_outlined,
-      activeIcon: Icons.checklist_rounded,
+      icon: Icons.check_circle_outline_rounded,
+      activeIcon: Icons.check_circle_rounded,
       label: 'Tasks',
     ),
     _NavTab(
@@ -47,26 +42,22 @@ class GlassNavBar extends StatelessWidget {
     ),
   ];
 
-  // ── Build ───────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // 24 px on left, right, and bottom; sits above the system nav area.
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: SizedBox(
-        height: 72,
+        height: 68,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(40),
+          borderRadius: BorderRadius.circular(34),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               decoration: BoxDecoration(
-                // Dark glass fill – slightly lighter than the deep background.
-                color: AppColors.navBackground.withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(40),
+                color: const Color(0xFF100E1D).withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(34),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withValues(alpha: 0.12),
                   width: 1,
                 ),
               ),
@@ -88,13 +79,10 @@ class GlassNavBar extends StatelessWidget {
   }
 }
 
-// ── Internal widgets ─────────────────────────────────────────────────────────
-
-/// Immutable data class describing one navigation tab.
 class _NavTab {
   final IconData icon;
   final IconData activeIcon;
-  final String label; // kept for semantics / accessibility
+  final String label;
 
   const _NavTab({
     required this.icon,
@@ -103,7 +91,6 @@ class _NavTab {
   });
 }
 
-/// Single tappable icon with animated active state and glow indicator dot.
 class _NavItem extends StatelessWidget {
   final _NavTab tab;
   final bool isActive;
@@ -117,68 +104,38 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: tab.label,
-      button: true,
-      selected: isActive,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 56,
-          height: 72,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // ── Icon ───────────────────────────────────────────────────────
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: Icon(
-                  isActive ? tab.activeIcon : tab.icon,
-                  key: ValueKey(isActive),
-                  size: 26,
-                  color: isActive ? AppColors.accentCyan : Colors.white38,
-                  shadows: isActive
-                      ? [
-                          Shadow(
-                            color: AppColors.accentCyan.withValues(alpha: 0.55),
-                            blurRadius: 12,
-                          ),
-                        ]
-                      : null,
-                ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 58,
+        height: 68,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isActive ? tab.activeIcon : tab.icon,
+              size: 22,
+              color: isActive ? AppColors.accentCyan : Colors.white38,
+              shadows: isActive
+                  ? [
+                      Shadow(
+                        color: AppColors.accentCyan.withValues(alpha: 0.6),
+                        blurRadius: 10,
+                      ),
+                    ]
+                  : null,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              tab.label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive ? AppColors.accentCyan : Colors.white38,
               ),
-
-              const SizedBox(height: 6),
-
-              // ── Active indicator dot ────────────────────────────────────────
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                width: isActive ? 5 : 0,
-                height: isActive ? 5 : 0,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.accentCyan,
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: AppColors.accentCyan.withValues(alpha: 0.80),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : null,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -322,4 +322,16 @@ class AppLauncherHelper {
     // Tier 3: Return sync resolution or original cleaned query
     return syncResolved;
   }
+
+  /// Resolves an app name and launches it on the mobile device.
+  static Future<bool> launchAppByName(String appName) async {
+    final pkg = await resolvePackage(appName);
+    if (pkg.isNotEmpty && isPackageName(pkg)) {
+      try {
+        final started = await InstalledApps.startApp(pkg);
+        return started ?? false;
+      } catch (_) {}
+    }
+    return false;
+  }
 }

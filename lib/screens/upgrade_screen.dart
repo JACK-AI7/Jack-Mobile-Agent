@@ -1,4 +1,12 @@
+// lib/screens/upgrade_screen.dart
+//
+// 11. Upgrade — Upgrade to Pro for more power
+// ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_colors.dart';
 
 class UpgradeScreen extends StatefulWidget {
   const UpgradeScreen({super.key});
@@ -8,231 +16,301 @@ class UpgradeScreen extends StatefulWidget {
 }
 
 class _UpgradeScreenState extends State<UpgradeScreen> {
-  bool isYearly = false;
+  bool _isYearly = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: const Color(0xFF07070A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 18),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
+        centerTitle: true,
+        title: Text(
+          'JACK AGENT',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 3.0,
+            color: Colors.white70,
+          ),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              // Header
+              Text(
                 'Upgrade',
-                style: TextStyle(
+                style: GoogleFonts.cormorantGaramond(
                   color: Colors.white,
-                  fontSize: 32,
+                  fontSize: 34,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Choose the plan that\'s right for you.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
+              const SizedBox(height: 4),
+              Text(
+                'Unlock more power with Jack Pro.',
+                style: GoogleFonts.inter(
+                  color: Colors.white54,
+                  fontSize: 13.5,
                 ),
               ),
-              const SizedBox(height: 32),
-              
-              // Toggle
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF151515),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildToggleButton('Monthly', !isYearly),
-                      _buildToggleButton('Annually', isYearly),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              
-              // Free Card
+
+              const SizedBox(height: 24),
+
+              // Billing Toggle Switch: [Monthly] [Yearly  Save 20%]
               Container(
+                height: 44,
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF151515),
+                  color: const Color(0xFF131221),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _isYearly = false);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: !_isYearly
+                                ? AppColors.accentCyan
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Monthly',
+                              style: GoogleFonts.inter(
+                                color: !_isYearly ? Colors.black : Colors.white70,
+                                fontSize: 13,
+                                fontWeight: !_isYearly
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _isYearly = true);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: _isYearly
+                                ? AppColors.accentCyan
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Yearly',
+                                  style: GoogleFonts.inter(
+                                    color: _isYearly
+                                        ? Colors.black
+                                        : Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: _isYearly
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _isYearly
+                                        ? Colors.black.withValues(alpha: 0.15)
+                                        : const Color(0xFF1E1B38),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Save 20%',
+                                    style: GoogleFonts.inter(
+                                      color: _isYearly
+                                          ? Colors.black
+                                          : AppColors.accentCyan,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Pro Card matching Screen 11
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF100E20),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: const Color(0xFF6B46C1).withValues(alpha: 0.4),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6B46C1).withValues(alpha: 0.18),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
-                padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Free',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    // Badge: ∞ Pro
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.all_inclusive_rounded,
+                          color: AppColors.accentCyan,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Pro',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Features checklist
+                    _buildFeatureItem('Unlimited automations'),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem('Advanced tools & models'),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem('Priority processing'),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem('Custom agents'),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem('Early access to new features'),
+
+                    const SizedBox(height: 28),
+
+                    // Price
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          _isYearly ? '\$16' : '\$19',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '/ month',
+                          style: GoogleFonts.inter(
+                            color: Colors.white54,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _isYearly ? 'Billed yearly at \$192' : 'Billed monthly',
+                      style: GoogleFonts.inter(
+                        color: Colors.white38,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '\$0 / mo',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+
                     const SizedBox(height: 24),
-                    _buildBenefitItem('Basic AI models', isPro: false),
-                    const SizedBox(height: 12),
-                    _buildBenefitItem('Standard daily limits', isPro: false),
-                    const SizedBox(height: 12),
-                    _buildBenefitItem('Community support', isPro: false),
-                    const SizedBox(height: 32),
+
+                    // CTA Button: "Upgrade to Pro ->"
                     SizedBox(
                       width: double.infinity,
+                      height: 52,
                       child: ElevatedButton(
-                        onPressed: null,
+                        onPressed: () {
+                          HapticFeedback.heavyImpact();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pro subscription activated! All features unlocked.'),
+                              backgroundColor: AppColors.surfaceElevated,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2A2A2A),
-                          disabledBackgroundColor: const Color(0xFF2A2A2A),
-                          disabledForegroundColor: Colors.white54,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: const Color(0xFF8B5CF6),
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Current Plan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Pro Card
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2B6BFF), Color(0xFF8A2BE2)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF8A2BE2).withValues(alpha: 0.3),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(2),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    color: const Color(0xFF151515),
-                  ),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Jack Pro',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2B6BFF).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Popular',
-                              style: TextStyle(
-                                color: Color(0xFF2B6BFF),
-                                fontWeight: FontWeight.bold,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Upgrade to Pro',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        isYearly ? '\$99.99 / yr' : '\$9.99 / mo',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                            const SizedBox(width: 6),
+                            const Icon(Icons.arrow_forward_rounded, size: 18),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      _buildBenefitItem('Advanced AI models', isPro: true),
-                      const SizedBox(height: 12),
-                      _buildBenefitItem('Unlimited daily limits', isPro: true),
-                      const SizedBox(height: 12),
-                      _buildBenefitItem('Priority support', isPro: true),
-                      const SizedBox(height: 12),
-                      _buildBenefitItem('Early access to features', isPro: true),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Pro upgrade is coming soon!')),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Upgrade to Pro',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+
               const SizedBox(height: 24),
             ],
           ),
@@ -241,45 +319,23 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     );
   }
 
-  Widget _buildToggleButton(String text, bool isSelected) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          isYearly = text == 'Annually';
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2B2B2B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white54,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBenefitItem(String text, {required bool isPro}) {
+  Widget _buildFeatureItem(String text) {
     return Row(
       children: [
-        Icon(
-          Icons.check_circle,
-          color: isPro ? const Color(0xFF2B6BFF) : Colors.white54,
-          size: 20,
+        const Icon(
+          Icons.check_rounded,
+          color: AppColors.accentCyan,
+          size: 18,
         ),
         const SizedBox(width: 12),
-        Text(
-          text,
-          style: TextStyle(
-            color: isPro ? Colors.white : Colors.white70,
-            fontSize: 16,
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              color: Colors.white70,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
       ],

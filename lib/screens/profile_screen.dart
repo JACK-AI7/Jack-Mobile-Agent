@@ -1,159 +1,258 @@
+// lib/screens/profile_screen.dart
+//
+// 10. Profile — Settings and preferences
+// ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/jack_auth_state.dart';
+
+import '../services/jack_permission_service.dart';
+import '../services/api/direct_groq_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/jack_orb.dart';
 import '../widgets/glass_card.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userNameAsync = ref.watch(userNameProvider);
+  void _showApiKeyDialog(BuildContext context) async {
+    final groq = DirectGroqService();
+    final currentKey = await groq.getApiKey() ?? '';
+    final controller = TextEditingController(text: currentKey);
 
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131124),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'API Key & Model Configuration',
+          style: GoogleFonts.cormorantGaramond(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter your Groq API Key (gsk_...) to enable direct high-speed Llama 3.3 70B reasoning.',
+              style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              obscureText: true,
+              decoration: InputDecoration(
+                hintText: 'gsk_...',
+                hintStyle: GoogleFonts.inter(color: Colors.white30),
+                filled: true,
+                fillColor: const Color(0xFF1E1C35),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.inter(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await groq.saveApiKey(controller.text.trim());
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Groq API Key saved successfully!'),
+                    backgroundColor: AppColors.surfaceElevated,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentCyan,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Save Key', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF07070A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 18),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
+        centerTitle: true,
+        title: Text(
+          'JACK AGENT',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 3.0,
+            color: Colors.white70,
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'More',
-                style: GoogleFonts.cormorantGaramond(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Account and preferences',
-                style: GoogleFonts.inter(
-                  color: Colors.white54,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Premium gradient banner
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF2B6BFF), // Accent Blue
-                      Color(0xFF7C3AED), // Accent Violet
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              // User Header Card (Screen 10)
+              Row(
+                children: [
+                  const JackOrb(size: 52, state: OrbState.idle),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Jack Agent',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentCyan.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: AppColors.accentCyan.withValues(alpha: 0.4),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                'Pro',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.accentCyan,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'easin@jack.ai',
+                          style: GoogleFonts.inter(
+                            color: Colors.white60,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Always learning. Always working.',
+                          style: GoogleFonts.inter(
+                            color: Colors.white38,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2B6BFF).withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(Icons.person_rounded, size: 36, color: Color(0xFF0A0A0A)),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          userNameAsync.when(
-                            data: (name) => Text(
-                              name ?? 'Guest User',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            loading: () => const SizedBox(
-                              height: 20,
-                              width: 100,
-                              child: LinearProgressIndicator(color: Colors.white54, backgroundColor: Colors.transparent),
-                            ),
-                            error: (error, stackTrace) => Text(
-                              'Error loading name',
-                              style: GoogleFonts.inter(color: Colors.white),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                            ),
-                            child: Text(
-                              'Pro',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(height: 32),
-              // Settings list
+
+              const SizedBox(height: 28),
+
+              // Settings Menu Items List matching Screen 10
               GlassCard(
-                padding: EdgeInsets.zero,
+                padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Column(
                   children: [
-                    _buildSettingsItem('Account', Icons.person_outline_rounded, onTap: () {}),
+                    _buildMenuItem(
+                      icon: Icons.person_outline_rounded,
+                      title: 'Account',
+                      subtitle: 'Manage your account',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/upgrade');
+                      },
+                    ),
                     _buildDivider(),
-                    _buildSettingsItem('Security', Icons.shield_outlined, onTap: () {}),
+                    _buildMenuItem(
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Permissions',
+                      subtitle: 'Control what Jack can do',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        JackPermissionService.showPermissionSheet(context);
+                      },
+                    ),
                     _buildDivider(),
-                    _buildSettingsItem('Billing', Icons.credit_card_outlined, onTap: () {}),
+                    _buildMenuItem(
+                      icon: Icons.psychology_outlined,
+                      title: 'Memory',
+                      subtitle: 'Manage what Jack remembers',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/autonomy');
+                      },
+                    ),
                     _buildDivider(),
-                    _buildSettingsItem('Integrations', Icons.extension_outlined, onTap: () {}),
+                    _buildMenuItem(
+                      icon: Icons.palette_outlined,
+                      title: 'Appearance',
+                      subtitle: 'Theme, language, voice',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/more');
+                      },
+                    ),
                     _buildDivider(),
-                    _buildSettingsItem('Appearance', Icons.palette_outlined, onTap: () {}),
-                    _buildDivider(),
-                    _buildSettingsItem('Help & Support', Icons.help_outline_rounded, onTap: () {}),
-                    _buildDivider(),
-                    _buildSettingsItem(
-                      'Logout',
-                      Icons.logout_rounded,
-                      isDestructive: true,
-                      onTap: () => ref.read(authStateProvider.notifier).logout(),
+                    _buildMenuItem(
+                      icon: Icons.shield_outlined,
+                      title: 'Security',
+                      subtitle: 'Privacy & data controls',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _showApiKeyDialog(context);
+                      },
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
             ],
           ),
@@ -162,49 +261,52 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsItem(String title, IconData icon, {VoidCallback? onTap, bool isDestructive = false}) {
-    final color = isDestructive ? AppColors.error : Colors.white;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDestructive ? AppColors.error.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: isDestructive ? AppColors.error : Colors.white70, size: 20),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    color: color,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              if (!isDestructive)
-                const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 24),
-            ],
-          ),
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
         ),
+        child: Icon(icon, color: Colors.white70, size: 20),
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: GoogleFonts.inter(
+          color: Colors.white54,
+          fontSize: 12,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: Colors.white30,
+        size: 20,
       ),
     );
   }
 
   Widget _buildDivider() {
     return Divider(
-      height: 1,
       color: Colors.white.withValues(alpha: 0.05),
-      indent: 64,
+      height: 1,
+      indent: 60,
+      endIndent: 16,
     );
   }
 }

@@ -1,9 +1,12 @@
+// lib/screens/splash_screen.dart
+//
+// 01. Splash / Welcome — Clean entry with brand identity
+// ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../theme/app_colors.dart';
 import '../widgets/jack_orb.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -15,129 +18,91 @@ class SplashScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF07070A),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 36.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Left "JACK AGENT"
+              // Top Left Brand Typography
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'JACK',
                     style: GoogleFonts.cormorantGaramond(
-                      fontSize: 32,
+                      fontSize: 34,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
-                      letterSpacing: 4.0,
-                      height: 1.1,
+                      letterSpacing: 2.0,
+                      height: 1.05,
                     ),
                   ),
                   Text(
                     'AGENT',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 2.0,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'THINK\nAUTOMATE\nGET THINGS DONE',
                     style: GoogleFonts.inter(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.accentCyan,
-                      letterSpacing: 4.0,
+                      color: Colors.white38,
+                      letterSpacing: 2.5,
+                      height: 1.8,
                     ),
                   ),
                 ],
-              ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
-              
-              const Spacer(flex: 2),
-              
+              ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.15, end: 0),
+
+              const Spacer(),
+
               // Center Jack Orb
               const Center(
                 child: JackOrb(
-                  size: 240,
+                  size: 260,
                   state: OrbState.idle,
                 ),
-              ).animate().fadeIn(duration: 800.ms).scale(),
-              
-              const SizedBox(height: 64),
-              
-              // Tagline
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'THINK',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 4.0,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.accentCyan,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'AUTOMATE',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 4.0,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.accentViolet,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'GET THINGS DONE',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 4.0,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
-              
-              const Spacer(flex: 3),
-              
-              // Large white Get Started button
+              ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.9, 0.9)),
+
+              const Spacer(),
+
+              // Bottom White Button: "Get Started ->"
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 58,
                 child: ElevatedButton(
                   onPressed: () => context.go('/home'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(29),
                     ),
                     elevation: 0,
                   ),
-                  child: Text(
-                    'Get Started',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Get Started',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, size: 18),
+                    ],
                   ),
                 ),
-              ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
+              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
             ],
           ),
         ),
