@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
 /// Floating pill-shaped glass navigation bar matching the reference design.
+typedef JackBottomNavigationBar = GlassNavBar;
+
 class GlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;

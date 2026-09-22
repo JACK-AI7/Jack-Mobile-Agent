@@ -85,7 +85,7 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
 
 class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
-    ref.listen<JackAuthState>(authStateProvider, (_, __) => notifyListeners());
+    ref.listen<JackAuthState>(authStateProvider, (_, _) => notifyListeners());
   }
 }
 

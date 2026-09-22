@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_test/flutter_test.dart';
-import '../lib/models/agent/jack_agent_request.dart';
-import '../lib/models/realtime/socket_events.dart';
-import '../lib/models/realtime/jack_orb_state.dart';
+import 'package:jack/models/agent/jack_agent_request.dart';
+import 'package:jack/models/realtime/socket_events.dart';
 
 void main() {
   group('Backend Contracts', () {

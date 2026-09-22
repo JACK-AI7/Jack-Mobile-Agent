@@ -277,7 +277,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                           HapticFeedback.heavyImpact();
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Pro subscription activated! All features unlocked.'),
+                              content: Text('Payment gateway is in sandbox configuration mode. Subscriptions live soon.'),
                               backgroundColor: AppColors.surfaceElevated,
                               behavior: SnackBarBehavior.floating,
                             ),

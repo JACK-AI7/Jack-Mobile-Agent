@@ -1,4 +1,4 @@
-﻿// ignore_for_file: constant_identifier_names
+// ignore_for_file: constant_identifier_names
 
 class TaskModel {
   final String id;
@@ -27,4 +27,6 @@ class TaskModel {
       updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
+
+  String get title => action;
 }

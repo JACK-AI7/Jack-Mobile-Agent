@@ -126,9 +126,43 @@ class MoreScreen extends StatelessWidget {
                       context,
                       icon: Icons.info_outline_rounded,
                       title: 'About Jack',
-                      subtitle: 'Version 1.0.0',
+                      subtitle: 'Version 1.0.1+2',
                       onTap: () {
                         HapticFeedback.lightImpact();
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: const Color(0xFF131124),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: Text(
+                              'About JACK AGENT',
+                              style: GoogleFonts.cormorantGaramond(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Version: 1.0.1 (Build 2)', style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
+                                const SizedBox(height: 6),
+                                Text('Engine: Flutter 3.12+ / Android Native', style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
+                                const SizedBox(height: 6),
+                                Text('AI Model: Llama 3.3 70B Versatile (Groq Sub-400ms)', style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
+                                const SizedBox(height: 6),
+                                Text('Architecture: Local-First Dual-Speed Cognitive Engine', style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: Text('Close', style: GoogleFonts.inter(color: AppColors.accentCyan)),
+                              ),
+                            ],
+                          ),
+                        );
                       },
                     ),
                   ],

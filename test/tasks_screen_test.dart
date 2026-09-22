@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../lib/screens/tasks_screen.dart';
-import '../lib/providers/tasks_provider.dart';
-import '../lib/models/task_model.dart';
+import 'package:jack/screens/tasks_screen.dart';
+import 'package:jack/providers/tasks_provider.dart';
+import 'package:jack/models/task_model.dart';
 
 void main() {
   testWidgets('TasksScreen renders correctly with empty data', (WidgetTester tester) async {

@@ -6,17 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/api/jack_api_client.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
-class AutomationsScreen extends StatefulWidget {
+class AutomationsScreen extends ConsumerStatefulWidget {
   const AutomationsScreen({super.key});
 
   @override
-  State<AutomationsScreen> createState() => _AutomationsScreenState();
+  ConsumerState<AutomationsScreen> createState() => _AutomationsScreenState();
 }
 
-class _AutomationsScreenState extends State<AutomationsScreen> {
+class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Personal', 'Work', 'Custom'];
 
@@ -246,21 +248,26 @@ class _AutomationsScreenState extends State<AutomationsScreen> {
                           // Toggle Switch
                           Switch(
                             value: enabled,
-                            onChanged: (val) {
+                            onChanged: (val) async {
                               HapticFeedback.lightImpact();
                               setState(() => auto['enabled'] = val);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    val
-                                        ? '${auto['title']} activated'
-                                        : '${auto['title']} paused',
+                              try {
+                                await ref.read(apiClientProvider).toggleAutomation(auto['id'] as String, val);
+                              } catch (_) {}
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      val
+                                          ? '${auto['title']} activated'
+                                          : '${auto['title']} paused',
+                                    ),
+                                    backgroundColor: AppColors.surfaceElevated,
+                                    duration: const Duration(seconds: 1),
+                                    behavior: SnackBarBehavior.floating,
                                   ),
-                                  backgroundColor: AppColors.surfaceElevated,
-                                  duration: const Duration(seconds: 1),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
+                                );
+                              }
                             },
                             activeTrackColor:
                                 AppColors.accentCyan.withValues(alpha: 0.5),

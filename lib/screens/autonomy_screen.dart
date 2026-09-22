@@ -6,17 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/jack_permission_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
-class AutonomyScreen extends StatefulWidget {
+class AutonomyScreen extends ConsumerStatefulWidget {
   const AutonomyScreen({super.key});
 
   @override
-  State<AutonomyScreen> createState() => _AutonomyScreenState();
+  ConsumerState<AutonomyScreen> createState() => _AutonomyScreenState();
 }
 
-class _AutonomyScreenState extends State<AutonomyScreen> {
+class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
   int _selectedTab = 0;
   final List<String> _tabs = [
     'Overview',
@@ -25,6 +27,31 @@ class _AutonomyScreenState extends State<AutonomyScreen> {
     'Memory',
     'Settings',
   ];
+
+  int _autonomyScore = 48; // Baseline design reference score
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRealScore();
+  }
+
+  Future<void> _calculateRealScore() async {
+    int score = 20; // Base agent intelligence baseline
+    try {
+      final perm = await JackPermissionService.checkAll();
+      if (perm.accessibility) score += 12;
+      if (perm.overlay) score += 8;
+      if (perm.microphone) score += 4;
+      if (perm.notification) score += 4;
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _autonomyScore = score.clamp(10, 100);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,14 +206,14 @@ class _AutonomyScreenState extends State<AutonomyScreen> {
                         stops: [0.0, 0.35, 0.70, 1.0],
                       ).createShader(rect);
                     },
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 200,
                       height: 200,
                       child: CircularProgressIndicator(
-                        value: 0.48, // 48%
+                        value: _autonomyScore / 100.0,
                         strokeWidth: 9,
-                        backgroundColor: Color(0xFF14141E),
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        backgroundColor: const Color(0xFF14141E),
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                         strokeCap: StrokeCap.round,
                       ),
                     ),
@@ -197,7 +224,7 @@ class _AutonomyScreenState extends State<AutonomyScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '48%',
+                        '$_autonomyScore%',
                         style: GoogleFonts.inter(
                           color: Colors.white,
                           fontSize: 48,

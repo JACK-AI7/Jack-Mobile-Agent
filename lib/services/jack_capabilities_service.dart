@@ -1,7 +1,6 @@
 // lib/services/jack_capabilities_service.dart
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'jack_tools.dart';
 import 'app_launcher_helper.dart';
 
 /// Handles executing physical Android capabilities and interacting with the DOM.

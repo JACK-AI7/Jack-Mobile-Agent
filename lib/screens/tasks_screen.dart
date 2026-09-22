@@ -6,17 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/tasks_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
-class TasksScreen extends StatefulWidget {
+class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
 
   @override
-  State<TasksScreen> createState() => _TasksScreenState();
+  ConsumerState<TasksScreen> createState() => _TasksScreenState();
 }
 
-class _TasksScreenState extends State<TasksScreen> {
+class _TasksScreenState extends ConsumerState<TasksScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Running', 'Completed'];
 
@@ -71,7 +73,28 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _tasks.where((t) {
+    final tasksAsync = ref.watch(tasksProvider);
+    final List<Map<String, dynamic>> activeList = tasksAsync.maybeWhen(
+      data: (backendList) {
+        if (backendList.isNotEmpty) {
+          return backendList.map((t) {
+            final isDone = t.status.toUpperCase() == 'COMPLETED';
+            return {
+              'id': t.id,
+              'title': t.title,
+              'subtitle': '${t.status.toLowerCase()} • task id #${t.id.substring(0, t.id.length > 6 ? 6 : t.id.length)}',
+              'status': isDone ? 'Completed' : 'Running',
+              'isCompleted': isDone,
+              'iconColor': isDone ? const Color(0xFF00FF88) : const Color(0xFF9B2BFF),
+            };
+          }).toList();
+        }
+        return _tasks;
+      },
+      orElse: () => _tasks,
+    );
+
+    final filtered = activeList.where((t) {
       if (_selectedFilter == 1) return t['status'] == 'Running';
       if (_selectedFilter == 2) return t['status'] == 'Completed';
       return true;

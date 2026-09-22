@@ -12,6 +12,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../models/realtime/jack_orb_state.dart';
+import '../services/jack_auth_state.dart';
 import '../services/realtime/agent_execution_controller.dart';
 import '../services/jack_master_dispatcher.dart';
 import '../services/app_launcher_helper.dart';
@@ -170,6 +171,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ? OrbState.thinking
             : OrbState.idle);
 
+    final userNameAsync = ref.watch(userNameProvider);
+    final displayName = userNameAsync.when(
+      data: (name) => (name != null && name.trim().isNotEmpty) ? name.trim() : 'User',
+      loading: () => '...',
+      error: (err, stack) => 'User',
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFF07070A),
       resizeToAvoidBottomInset: true,
@@ -225,11 +233,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 const SizedBox(height: 12),
 
-                // Greeting: "Hello Easin!"
+                // Greeting: Real user name
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 26.0),
                   child: Text(
-                    'Hello Easin!',
+                    'Hello $displayName!',
                     style: GoogleFonts.inter(
                       color: Colors.white54,
                       fontSize: 14,
