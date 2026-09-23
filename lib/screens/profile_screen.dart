@@ -311,6 +311,9 @@ class ProfileScreen extends ConsumerWidget {
                       onPressed: () async {
                         HapticFeedback.mediumImpact();
                         await ref.read(authStateProvider.notifier).logout();
+                        if (context.mounted) {
+                          context.go('/login');
+                        }
                       },
                       icon: const Icon(Icons.logout_rounded,
                           color: Colors.redAccent, size: 18),

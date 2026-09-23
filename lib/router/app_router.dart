@@ -62,15 +62,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isPublic = _publicRoutes.contains(path);
       final isAuthenticated = authState == JackAuthState.AUTHENTICATED;
 
-      if (authState == JackAuthState.AUTHENTICATING && path == AppRoutes.splash) {
+      // Always allow the user to view the Welcome/Splash screen
+      if (path == AppRoutes.splash) {
         return null;
       }
 
+      // Unauthenticated users attempting to access protected screens go to login
       if (!isAuthenticated && !isPublic) {
         return AppRoutes.login;
       }
 
-      if (isAuthenticated && isPublic) {
+      // Authenticated users on login or register are routed to home
+      if (isAuthenticated && (path == AppRoutes.login || path == AppRoutes.register)) {
         return AppRoutes.home;
       }
 

@@ -6,19 +6,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../../config/environment.dart';
+import 'jack_storage.dart';
 
 final authClientProvider = Provider((ref) => JackAuthClient());
 
 class JackAuthClient {
   final Dio _dio = Dio(BaseOptions(
     baseUrl: EnvironmentConfig.apiUrl,
-    connectTimeout: const Duration(seconds: 4),
-    receiveTimeout: const Duration(seconds: 4),
+    connectTimeout: const Duration(milliseconds: 1500),
+    receiveTimeout: const Duration(milliseconds: 1500),
   ));
-  final _secureStorage = const FlutterSecureStorage();
 
   Future<void> login(String email, String password) async {
     try {
@@ -29,17 +27,17 @@ class JackAuthClient {
 
       final token = response.data['accessToken'];
       if (token != null) {
-        await _secureStorage.write(key: 'jack_access_token', value: token.toString());
+        await JackStorage.write(key: 'jack_access_token', value: token.toString());
         if (response.data['name'] != null) {
-          await _secureStorage.write(
+          await JackStorage.write(
               key: 'jack_user_name', value: response.data['name'].toString());
         } else {
-          await _secureStorage.write(
+          await JackStorage.write(
               key: 'jack_user_name', value: _deriveNameFromEmail(email));
         }
 
         if (response.data['refreshToken'] != null) {
-          await _secureStorage.write(
+          await JackStorage.write(
               key: 'jack_refresh_token',
               value: response.data['refreshToken'].toString());
         }
@@ -57,8 +55,8 @@ class JackAuthClient {
     // Resilient local session creation (offline / standalone mode)
     final derivedName = _deriveNameFromEmail(email);
     final fallbackToken = 'jack_session_${DateTime.now().millisecondsSinceEpoch}';
-    await _secureStorage.write(key: 'jack_access_token', value: fallbackToken);
-    await _secureStorage.write(key: 'jack_user_name', value: derivedName);
+    await JackStorage.write(key: 'jack_access_token', value: fallbackToken);
+    await JackStorage.write(key: 'jack_user_name', value: derivedName);
   }
 
   Future<void> register(String name, String email, String password) async {
@@ -71,12 +69,12 @@ class JackAuthClient {
 
       final token = response.data['accessToken'];
       if (token != null) {
-        await _secureStorage.write(key: 'jack_access_token', value: token.toString());
+        await JackStorage.write(key: 'jack_access_token', value: token.toString());
         final finalName = response.data['name']?.toString() ?? name;
-        await _secureStorage.write(key: 'jack_user_name', value: finalName);
+        await JackStorage.write(key: 'jack_user_name', value: finalName);
 
         if (response.data['refreshToken'] != null) {
-          await _secureStorage.write(
+          await JackStorage.write(
               key: 'jack_refresh_token',
               value: response.data['refreshToken'].toString());
         }
@@ -97,8 +95,8 @@ class JackAuthClient {
     // Resilient local registration (offline / standalone mode)
     final displayName = name.trim().isNotEmpty ? name.trim() : _deriveNameFromEmail(email);
     final fallbackToken = 'jack_session_${DateTime.now().millisecondsSinceEpoch}';
-    await _secureStorage.write(key: 'jack_access_token', value: fallbackToken);
-    await _secureStorage.write(key: 'jack_user_name', value: displayName);
+    await JackStorage.write(key: 'jack_access_token', value: fallbackToken);
+    await JackStorage.write(key: 'jack_user_name', value: displayName);
   }
 
   static String _deriveNameFromEmail(String email) {
@@ -108,16 +106,16 @@ class JackAuthClient {
   }
 
   Future<String?> getAccessToken() async {
-    return await _secureStorage.read(key: 'jack_access_token');
+    return await JackStorage.read(key: 'jack_access_token');
   }
 
   Future<String?> getUserName() async {
-    return await _secureStorage.read(key: 'jack_user_name');
+    return await JackStorage.read(key: 'jack_user_name');
   }
 
   Future<void> logout() async {
-    await _secureStorage.delete(key: 'jack_access_token');
-    await _secureStorage.delete(key: 'jack_refresh_token');
-    await _secureStorage.delete(key: 'jack_user_name');
+    await JackStorage.delete(key: 'jack_access_token');
+    await JackStorage.delete(key: 'jack_refresh_token');
+    await JackStorage.delete(key: 'jack_user_name');
   }
 }
