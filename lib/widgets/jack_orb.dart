@@ -1,12 +1,13 @@
 // lib/widgets/jack_orb.dart
 //
-// Animated JACK orb — 6 states with GPU-friendly animations and Accelerometer eye-tracking
+// Animated JACK Orb — Pixel-perfect 3D celestial glowing orb with
+// multi-layer volumetric gradient, ambient dual-tone bloom, and
+// glowing twin capsule eyes with parallax sensor tracking.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-import '../theme/app_colors.dart';
 
 enum OrbState { idle, thinking, working, success, error, listening }
 
@@ -43,20 +44,20 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
     super.initState();
     _breatheCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 3200),
     )..repeat(reverse: true);
 
     _rotateCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 6000),
+      duration: const Duration(milliseconds: 8000),
     )..repeat();
 
     _pulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    _breatheAnim = Tween<double>(begin: 0.92, end: 1.0).animate(
+    _breatheAnim = Tween<double>(begin: 0.96, end: 1.02).animate(
       CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut),
     );
 
@@ -67,13 +68,11 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
     try {
       _accelSub = accelerometerEventStream().listen((AccelerometerEvent event) {
         if (!mounted) return;
-        // The event values usually range from -9.8 to 9.8 (gravity)
-        // We invert X so when tilted right, eyes go right.
-        _targetOffsetX = -event.x.clamp(-4.0, 4.0) * (widget.size * 0.025);
-        // We invert Y so when tilted up (negative y), eyes go up.
-        _targetOffsetY = (event.y - 5.0).clamp(-4.0, 4.0) * (widget.size * 0.025);
+        // Sensitivity scaled with size
+        final maxOffset = widget.size * 0.035;
+        _targetOffsetX = -event.x.clamp(-4.0, 4.0) * (maxOffset / 4.0);
+        _targetOffsetY = (event.y - 5.0).clamp(-4.0, 4.0) * (maxOffset / 4.0);
 
-        // Smooth interpolation
         setState(() {
           _eyeOffsetX += (_targetOffsetX - _eyeOffsetX) * 0.15;
           _eyeOffsetY += (_targetOffsetY - _eyeOffsetY) * 0.15;
@@ -93,34 +92,6 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  List<Color> get _stateColors {
-    switch (widget.state) {
-      case OrbState.thinking:
-        return [AppColors.accentViolet, AppColors.accentBlue, AppColors.accentCyan];
-      case OrbState.working:
-        return [AppColors.accentCyan, AppColors.accentTeal, AppColors.accentBlue];
-      case OrbState.success:
-        return [AppColors.success, AppColors.accentTeal, AppColors.accentCyan];
-      case OrbState.error:
-        return [AppColors.error, AppColors.accentPink, AppColors.accentViolet];
-      case OrbState.listening:
-        return [AppColors.accentPink, AppColors.accentViolet, AppColors.accentCyan];
-      case OrbState.idle:
-        return AppColors.orbGradient;
-    }
-  }
-
-  Color get _glowColor {
-    switch (widget.state) {
-      case OrbState.thinking: return AppColors.accentViolet;
-      case OrbState.working:  return AppColors.accentCyan;
-      case OrbState.success:  return AppColors.success;
-      case OrbState.error:    return AppColors.error;
-      case OrbState.listening: return AppColors.accentPink;
-      default:                return AppColors.accentCyan;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -128,114 +99,22 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: Listenable.merge([_breatheCtrl, _rotateCtrl, _pulseCtrl]),
         builder: (context, child) {
-          final scale = widget.state == OrbState.idle ? _breatheAnim.value : 1.0;
-          final glowRadius = widget.size * 0.35 +
-              (widget.state == OrbState.listening
-                  ? _pulseCtrl.value * widget.size * 0.2
-                  : 0);
+          final scale = _breatheAnim.value;
 
           return Transform.scale(
             scale: scale,
             child: SizedBox(
               width: widget.size,
               height: widget.size,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // ── Outer glow ────────────────────────────────────────────
-                  Container(
-                    width: widget.size,
-                    height: widget.size,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _glowColor.withValues(alpha: 0.25),
-                          blurRadius: glowRadius,
-                          spreadRadius: glowRadius * 0.3,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Rotating gradient ring ────────────────────────────────
-                  Transform.rotate(
-                    angle: _rotateCtrl.value * 2 * pi,
-                    child: Container(
-                      width: widget.size,
-                      height: widget.size,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: SweepGradient(
-                          colors: [
-                            ..._stateColors,
-                            _stateColors.first,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // ── Inner orb body ────────────────────────────────────────
-                  Container(
-                    width: widget.size * 0.88,
-                    height: widget.size * 0.88,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        center: const Alignment(-0.3, -0.4),
-                        colors: [
-                          _stateColors.first.withValues(alpha: 0.8),
-                          const Color(0xFF0A0A20),
-                          const Color(0xFF050510),
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
-                      ),
-                    ),
-                  ),
-
-                  // ── Specular highlight ────────────────────────────────────
-                  Positioned(
-                    top: widget.size * 0.12,
-                    left: widget.size * 0.15,
-                    child: Container(
-                      width: widget.size * 0.3,
-                      height: widget.size * 0.15,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(widget.size),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.35),
-                            Colors.white.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // ── Jack "eyes" (with parallax effect) ─────────────────────
-                  Transform.translate(
-                    offset: Offset(_eyeOffsetX, _eyeOffsetY),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _Eye(
-                          size: widget.size * 0.065,
-                          blinking: widget.state == OrbState.idle,
-                          pulseCtrl: _pulseCtrl,
-                        ),
-                        SizedBox(width: widget.size * 0.1),
-                        _Eye(
-                          size: widget.size * 0.065,
-                          blinking: widget.state == OrbState.idle,
-                          pulseCtrl: _pulseCtrl,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              child: CustomPaint(
+                size: Size(widget.size, widget.size),
+                painter: _JackOrbPainter(
+                  progress: _rotateCtrl.value,
+                  pulse: _pulseCtrl.value,
+                  eyeOffsetX: _eyeOffsetX,
+                  eyeOffsetY: _eyeOffsetY,
+                  state: widget.state,
+                ),
               ),
             ),
           );
@@ -245,28 +124,299 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
   }
 }
 
-class _Eye extends StatelessWidget {
-  final double size;
-  final bool blinking;
-  final AnimationController pulseCtrl;
+class _JackOrbPainter extends CustomPainter {
+  final double progress;
+  final double pulse;
+  final double eyeOffsetX;
+  final double eyeOffsetY;
+  final OrbState state;
 
-  const _Eye({required this.size, this.blinking = false, required this.pulseCtrl});
+  _JackOrbPainter({
+    required this.progress,
+    required this.pulse,
+    required this.eyeOffsetX,
+    required this.eyeOffsetY,
+    required this.state,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size * 0.7,
-      height: size * 2.2,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(size),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.6),
-            blurRadius: size * 1.5,
-          ),
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.44; // Sphere radius (leaving padding for ambient glow)
+    final sphereRect = Rect.fromCircle(center: center, radius: radius);
+
+    // ── 1. Dual-Tone Ambient Background Bloom ─────────────────────────────
+    _paintAmbientBloom(canvas, center, radius);
+
+    // ── 2. Volumetric Spherical Plasma Body ───────────────────────────────
+    canvas.save();
+    final spherePath = Path()..addOval(sphereRect);
+    canvas.clipPath(spherePath);
+
+    _paintSphereBody(canvas, sphereRect, center, radius);
+
+    canvas.restore();
+
+    // ── 3. Luminous Outer Rim Light ───────────────────────────────────────
+    _paintRimLight(canvas, sphereRect, center, radius);
+
+    // ── 4. Glowing Twin Capsule Eyes ──────────────────────────────────────
+    _paintTwinCapsuleEyes(canvas, center, radius);
+  }
+
+  void _paintAmbientBloom(Canvas canvas, Offset center, double radius) {
+    switch (state) {
+      case OrbState.thinking:
+        final glow = Paint()
+          ..color = const Color(0xFF7C3AED).withValues(alpha: 0.35 + 0.08 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(center, radius * 0.85, glow);
+        break;
+
+      case OrbState.working:
+        final glow = Paint()
+          ..color = const Color(0xFF00E5FF).withValues(alpha: 0.40 + 0.08 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(center, radius * 0.85, glow);
+        break;
+
+      case OrbState.success:
+        final glow = Paint()
+          ..color = const Color(0xFF10B981).withValues(alpha: 0.40 + 0.08 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(center, radius * 0.85, glow);
+        break;
+
+      case OrbState.error:
+        final glow = Paint()
+          ..color = const Color(0xFFEF4444).withValues(alpha: 0.40 + 0.08 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(center, radius * 0.85, glow);
+        break;
+
+      case OrbState.listening:
+      case OrbState.idle:
+        // Left Ambient Pink Bloom
+        final leftBloom = Paint()
+          ..color = const Color(0xFFEC4899).withValues(alpha: 0.32 + 0.06 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(
+          Offset(center.dx - radius * 0.38, center.dy),
+          radius * 0.75,
+          leftBloom,
+        );
+
+        // Right Ambient Cyan Bloom
+        final rightBloom = Paint()
+          ..color = const Color(0xFF00E5FF).withValues(alpha: 0.38 + 0.06 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(
+          Offset(center.dx + radius * 0.38, center.dy),
+          radius * 0.75,
+          rightBloom,
+        );
+        break;
+    }
+  }
+
+  void _paintSphereBody(Canvas canvas, Rect sphereRect, Offset center, double radius) {
+    if (state == OrbState.idle || state == OrbState.listening) {
+      // ── Idle/Listening: Reference Image Exact Luminous Palette ───────────
+
+      // Layer 1: Base Linear Celestial Flow
+      final baseGradient = LinearGradient(
+        begin: const Alignment(-1.0, -0.3),
+        end: const Alignment(1.0, 0.3),
+        colors: const [
+          Color(0xFFF472B6), // Soft radiant magenta / pink
+          Color(0xFFE879F9), // Lilac / orchid
+          Color(0xFF818CF8), // Periwinkle / indigo
+          Color(0xFF38BDF8), // Sky blue
+          Color(0xFF00E5FF), // Electric cyan
         ],
-      ),
+        stops: const [0.0, 0.26, 0.52, 0.78, 1.0],
+      );
+      final basePaint = Paint()..shader = baseGradient.createShader(sphereRect);
+      canvas.drawRect(sphereRect, basePaint);
+
+      // Layer 2: Radiant Cyan Dome (Right Side)
+      final cyanCore = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.68, 0.04),
+          radius: 0.88,
+          colors: [
+            const Color(0xFF00E5FF).withValues(alpha: 0.96),
+            const Color(0xFF0284C7).withValues(alpha: 0.65),
+            const Color(0xFF0369A1).withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(sphereRect);
+      canvas.drawRect(sphereRect, cyanCore);
+
+      // Layer 3: Vibrant Magenta Core (Left Side)
+      final magentaCore = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.68, -0.18),
+          radius: 0.92,
+          colors: [
+            const Color(0xFFEC4899).withValues(alpha: 0.95),
+            const Color(0xFFA855F7).withValues(alpha: 0.65),
+            const Color(0xFF7C3AED).withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 0.58, 1.0],
+        ).createShader(sphereRect);
+      canvas.drawRect(sphereRect, magentaCore);
+
+      // Layer 4: Warm Golden Peach Sunrise Glow (Bottom-Left Edge)
+      final peachGlow = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.78, 0.68),
+          radius: 0.72,
+          colors: [
+            const Color(0xFFFFD166).withValues(alpha: 0.88),
+            const Color(0xFFFB923C).withValues(alpha: 0.45),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.50, 1.0],
+        ).createShader(sphereRect);
+      canvas.drawRect(sphereRect, peachGlow);
+
+      // Layer 5: Central Spherical Depth Core (Indigo Depth)
+      final depthCore = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.0, -0.06),
+          radius: 0.65,
+          colors: [
+            const Color(0xFF3B82F6).withValues(alpha: 0.35),
+            const Color(0xFF1E1B4B).withValues(alpha: 0.20),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(sphereRect);
+      canvas.drawRect(sphereRect, depthCore);
+    } else {
+      // ── Other States: Dynamic Themed Spheres ─────────────────────────────
+      List<Color> palette;
+      switch (state) {
+        case OrbState.thinking:
+          palette = const [Color(0xFF7C3AED), Color(0xFF3B82F6), Color(0xFF00E5FF)];
+          break;
+        case OrbState.working:
+          palette = const [Color(0xFF00E5FF), Color(0xFF06B6D4), Color(0xFF10B981)];
+          break;
+        case OrbState.success:
+          palette = const [Color(0xFF10B981), Color(0xFF06B6D4), Color(0xFF3B82F6)];
+          break;
+        case OrbState.error:
+          palette = const [Color(0xFFEF4444), Color(0xFFF43F5E), Color(0xFFF59E0B)];
+          break;
+        default:
+          palette = const [Color(0xFFF472B6), Color(0xFF3B82F6), Color(0xFF00E5FF)];
+      }
+
+      final gradient = SweepGradient(
+        transform: GradientRotation(progress * 2 * pi),
+        colors: [...palette, palette.first],
+      );
+      final p = Paint()..shader = gradient.createShader(sphereRect);
+      canvas.drawRect(sphereRect, p);
+
+      final highlight = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.2, -0.3),
+          radius: 0.85,
+          colors: [
+            Colors.white.withValues(alpha: 0.3),
+            Colors.transparent,
+          ],
+        ).createShader(sphereRect);
+      canvas.drawRect(sphereRect, highlight);
+    }
+  }
+
+  void _paintRimLight(Canvas canvas, Rect sphereRect, Offset center, double radius) {
+    final rimPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..shader = const SweepGradient(
+        colors: [
+          Color(0xFF00E5FF),
+          Color(0xFF38BDF8),
+          Color(0xFFFFD166),
+          Color(0xFFEC4899),
+          Color(0xFFE879F9),
+          Color(0xFF00E5FF),
+        ],
+      ).createShader(sphereRect);
+
+    canvas.drawCircle(center, radius - 0.8, rimPaint);
+  }
+
+  void _paintTwinCapsuleEyes(Canvas canvas, Offset center, double radius) {
+    final eyeCenterX = center.dx + eyeOffsetX;
+    final eyeCenterY = center.dy + eyeOffsetY;
+
+    // Dimensions matching reference image
+    final eyeHeight = radius * 0.42;
+    final eyeWidth = radius * 0.135;
+    final eyeSpacing = radius * 0.27; // Distance between centers
+    final cornerRadius = Radius.circular(eyeWidth / 2);
+
+    final leftRect = Rect.fromCenter(
+      center: Offset(eyeCenterX - eyeSpacing / 2, eyeCenterY),
+      width: eyeWidth,
+      height: eyeHeight,
     );
+    final rightRect = Rect.fromCenter(
+      center: Offset(eyeCenterX + eyeSpacing / 2, eyeCenterY),
+      width: eyeWidth,
+      height: eyeHeight,
+    );
+
+    final leftRRect = RRect.fromRectAndRadius(leftRect, cornerRadius);
+    final rightRRect = RRect.fromRectAndRadius(rightRect, cornerRadius);
+
+    final eyeGlowColor = state == OrbState.error
+        ? const Color(0xFFEF4444)
+        : state == OrbState.success
+            ? const Color(0xFF10B981)
+            : const Color(0xFF00E5FF);
+
+    // Pass 1: Broad Diffuse Cyan Neon Bloom
+    final outerBloom = Paint()
+      ..color = eyeGlowColor.withValues(alpha: 0.50 + 0.10 * pulse)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.18);
+    canvas.drawRRect(leftRRect, outerBloom);
+    canvas.drawRRect(rightRRect, outerBloom);
+
+    // Pass 2: Intense Focused Neon Cyan Aura
+    final midBloom = Paint()
+      ..color = eyeGlowColor.withValues(alpha: 0.90)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.08);
+    canvas.drawRRect(leftRRect, midBloom);
+    canvas.drawRRect(rightRRect, midBloom);
+
+    // Pass 3: Radiant White / Pale Cyan Core Aura
+    final whiteBloom = Paint()
+      ..color = Colors.white.withValues(alpha: 0.92)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.032);
+    canvas.drawRRect(leftRRect, whiteBloom);
+    canvas.drawRRect(rightRRect, whiteBloom);
+
+    // Pass 4: Solid Pure White Capsule Core
+    final coreFill = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(leftRRect, coreFill);
+    canvas.drawRRect(rightRRect, coreFill);
+  }
+
+  @override
+  bool shouldRepaint(covariant _JackOrbPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.pulse != pulse ||
+        oldDelegate.eyeOffsetX != eyeOffsetX ||
+        oldDelegate.eyeOffsetY != eyeOffsetY ||
+        oldDelegate.state != state;
   }
 }

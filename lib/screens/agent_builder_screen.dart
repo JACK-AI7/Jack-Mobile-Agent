@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../theme/app_colors.dart';
+import '../widgets/glass_nav_bar.dart';
 
 class BuilderScreen extends StatefulWidget {
   const BuilderScreen({super.key});
@@ -23,43 +25,51 @@ class _BuilderScreenState extends State<BuilderScreen>
   final List<Map<String, dynamic>> _nodes = [
     {
       'label': 'Tools',
-      'icon': Icons.build_rounded,
-      'color': const Color(0xFF00C8FF),
+      'icon': Icons.folder_open_rounded,
+      'color': const Color(0xFF00E5FF),
+      'secondaryColor': const Color(0xFF0284C7),
     },
     {
       'label': 'Automations',
       'icon': Icons.settings_suggest_rounded,
-      'color': const Color(0xFF9B2BFF),
+      'color': const Color(0xFF8B5CF6),
+      'secondaryColor': const Color(0xFF00E5FF),
     },
     {
       'label': 'Memory',
-      'icon': Icons.memory_rounded,
-      'color': const Color(0xFFFF2B6B),
+      'icon': Icons.settings_rounded,
+      'color': const Color(0xFFF43F5E),
+      'secondaryColor': const Color(0xFFEC4899),
     },
     {
       'label': 'Integrations',
       'icon': Icons.all_inclusive_rounded,
-      'color': const Color(0xFF2B6BFF),
+      'color': const Color(0xFF3B82F6),
+      'secondaryColor': const Color(0xFF6366F1),
     },
     {
       'label': 'Personality',
-      'icon': Icons.face_rounded,
-      'color': const Color(0xFF7A40F2),
+      'icon': Icons.person_rounded,
+      'color': const Color(0xFF7C3AED),
+      'secondaryColor': const Color(0xFF9333EA),
     },
     {
       'label': 'Knowledge',
-      'icon': Icons.menu_book_rounded,
-      'color': const Color(0xFFFF62A5),
+      'icon': Icons.find_in_page_rounded,
+      'color': const Color(0xFFF59E0B),
+      'secondaryColor': const Color(0xFF84CC16),
     },
     {
       'label': 'Data',
-      'icon': Icons.storage_rounded,
-      'color': const Color(0xFF00E5A3),
+      'icon': Icons.dns_rounded,
+      'color': const Color(0xFF10B981),
+      'secondaryColor': const Color(0xFF059669),
     },
     {
       'label': 'Skills',
-      'icon': Icons.auto_awesome_rounded,
-      'color': const Color(0xFF8054FF),
+      'icon': Icons.business_center_rounded,
+      'color': const Color(0xFFA855F7),
+      'secondaryColor': const Color(0xFFEC4899),
     },
   ];
 
@@ -98,7 +108,7 @@ class _BuilderScreenState extends State<BuilderScreen>
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: (node['color'] as Color).withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     node['icon'] as IconData,
@@ -107,26 +117,38 @@ class _BuilderScreenState extends State<BuilderScreen>
                   ),
                 ),
                 const SizedBox(width: 14),
-                Text(
-                  'Configure ${node['label']}',
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      node['label'] as String,
+                      style: GoogleFonts.cormorantGaramond(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Configure agent ${node['label'].toString().toLowerCase()}',
+                      style: GoogleFonts.inter(
+                        color: Colors.white54,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 20),
             Text(
-              'Customize ${node['label']} parameters, autonomy weighting, and model permissions for Jack.',
+              'Customize how Jack uses ${node['label']} to automate actions, browse data, and follow your workflows.',
               style: GoogleFonts.inter(
-                color: Colors.white60,
+                color: Colors.white70,
                 fontSize: 13,
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 48,
@@ -167,6 +189,7 @@ class _BuilderScreenState extends State<BuilderScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded,
               color: Colors.white, size: 18),
@@ -182,32 +205,43 @@ class _BuilderScreenState extends State<BuilderScreen>
         title: Text(
           'JACK AGENT',
           style: GoogleFonts.inter(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            letterSpacing: 3.0,
+            letterSpacing: 2.8,
             color: Colors.white70,
           ),
         ),
       ),
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: 2, // Agent Builder is center tab
+        onTap: (index) {
+          if (index == 0) context.go('/home');
+          if (index == 1) context.go('/library');
+          if (index == 2) context.go('/agent-builder');
+          if (index == 3) context.go('/tasks');
+          if (index == 4) context.go('/profile');
+        },
+      ),
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-              child: Text(
-                'Build how your\nagent works',
-                style: GoogleFonts.cormorantGaramond(
-                  color: Colors.white,
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  height: 1.15,
-                ),
+            const SizedBox(height: 8),
+
+            // ── Centered Title: "Build how your\nagent works"
+            Text(
+              'Build how your\nagent works',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cormorantGaramond(
+                color: Colors.white,
+                fontSize: 34,
+                fontWeight: FontWeight.w600,
+                height: 1.15,
+                letterSpacing: -0.3,
               ),
             ),
 
-            // Constellation Radial Wheel
+            // ── Constellation Radial Wheel ────────────────────────────────
             Expanded(
               child: Center(
                 child: SizedBox(
@@ -216,64 +250,39 @@ class _BuilderScreenState extends State<BuilderScreen>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Radial background glow
+                      // Radial background ambient glow
                       Container(
-                        width: 300,
-                        height: 300,
+                        width: 290,
+                        height: 290,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              const Color(0xFF00FF88).withValues(alpha: 0.12),
-                              const Color(0xFF2B6BFF).withValues(alpha: 0.08),
+                              const Color(0xFF2DD4BF).withValues(alpha: 0.16),
+                              const Color(0xFF00E5FF).withValues(alpha: 0.08),
                               Colors.transparent,
                             ],
-                            stops: const [0.0, 0.5, 1.0],
+                            stops: const [0.0, 0.45, 1.0],
                           ),
                         ),
                       ),
 
-                      // Connecting neon lines from center hub
-                      CustomPaint(
-                        size: const Size(320, 320),
-                        painter: _ConstellationPainter(
-                          pulseValue: _pulseController.value,
-                          nodeCount: _nodes.length,
-                          radius: 125.0,
-                        ),
-                      ),
-
-                      // Center glowing Starburst Core
+                      // Connecting rays from center starburst to orbiting nodes
                       AnimatedBuilder(
                         animation: _pulseController,
                         builder: (context, _) {
-                          return Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF00FF88).withValues(alpha: 0.15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF00FF88)
-                                      .withValues(alpha: 0.35 + _pulseController.value * 0.25),
-                                  blurRadius: 24 + _pulseController.value * 12,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.auto_awesome,
-                                color: Color(0xFF00FF88),
-                                size: 28,
-                              ),
+                          return CustomPaint(
+                            size: const Size(320, 320),
+                            painter: _ConstellationPainter(
+                              pulseValue: _pulseController.value,
+                              nodeCount: _nodes.length,
+                              radius: 122.0,
                             ),
                           );
                         },
                       ),
 
-                      // 8 Circular Orbiting Nodes
+                      // 8 Orbiting Mini Luminous Orbs
                       ..._buildNodes(),
                     ],
                   ),
@@ -281,7 +290,7 @@ class _BuilderScreenState extends State<BuilderScreen>
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -289,7 +298,7 @@ class _BuilderScreenState extends State<BuilderScreen>
   }
 
   List<Widget> _buildNodes() {
-    const double radius = 125.0;
+    const double radius = 122.0;
     final widgets = <Widget>[];
 
     for (int i = 0; i < _nodes.length; i++) {
@@ -299,43 +308,52 @@ class _BuilderScreenState extends State<BuilderScreen>
       final double x = radius * math.cos(angle);
       final double y = radius * math.sin(angle);
 
+      final color1 = node['color'] as Color;
+      final color2 = node['secondaryColor'] as Color;
+
       widgets.add(
         Transform.translate(
           offset: Offset(x, y),
           child: GestureDetector(
             onTap: () => _onNodeTapped(node),
+            behavior: HitTestBehavior.opaque,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Mini 3D Luminous Orb
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.3, -0.3),
+                      radius: 0.9,
                       colors: [
-                        (node['color'] as Color),
-                        (node['color'] as Color).withValues(alpha: 0.78),
+                        color1,
+                        color2.withValues(alpha: 0.85),
+                        const Color(0xFF0A0A18),
                       ],
+                      stops: const [0.0, 0.6, 1.0],
                     ),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: Colors.white.withValues(alpha: 0.28),
                       width: 1.0,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (node['color'] as Color).withValues(alpha: 0.45),
-                        blurRadius: 14,
+                        color: color1.withValues(alpha: 0.55),
+                        blurRadius: 16,
                         spreadRadius: 2,
                       ),
                     ],
                   ),
-                  child: Icon(
-                    node['icon'] as IconData,
-                    color: Colors.white,
-                    size: 20,
+                  child: Center(
+                    child: Icon(
+                      node['icon'] as IconData,
+                      color: Colors.white,
+                      size: 21,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -343,7 +361,7 @@ class _BuilderScreenState extends State<BuilderScreen>
                   node['label'] as String,
                   style: GoogleFonts.inter(
                     color: Colors.white70,
-                    fontSize: 10.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -358,6 +376,7 @@ class _BuilderScreenState extends State<BuilderScreen>
   }
 }
 
+/// Custom painter for the central 8-pointed starburst flare and radiating beams
 class _ConstellationPainter extends CustomPainter {
   final double pulseValue;
   final int nodeCount;
@@ -372,19 +391,69 @@ class _ConstellationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..color = const Color(0xFF00FF88).withValues(alpha: 0.22 + pulseValue * 0.15)
-      ..strokeWidth = 1.0
+
+    // ── 1. Draw 8 Radiating Light Beams to Orbiting Nodes ─────────────────
+    final beamPaint = Paint()
+      ..color = const Color(0xFF4ADE80).withValues(alpha: 0.28 + pulseValue * 0.16)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    final glowBeamPaint = Paint()
+      ..color = const Color(0xFF2DD4BF).withValues(alpha: 0.20 + pulseValue * 0.12)
+      ..strokeWidth = 3.5
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0)
       ..style = PaintingStyle.stroke;
 
     for (int i = 0; i < nodeCount; i++) {
       final double angle = (i * 2 * math.pi) / nodeCount - math.pi / 2;
       final double x = center.dx + radius * math.cos(angle);
       final double y = center.dy + radius * math.sin(angle);
-      canvas.drawLine(center, Offset(x, y), paint);
+      final target = Offset(x, y);
+
+      canvas.drawLine(center, target, glowBeamPaint);
+      canvas.drawLine(center, target, beamPaint);
     }
+
+    // ── 2. Draw 8-Pointed Flared Starburst Center Hub ─────────────────────
+    final starGlow = Paint()
+      ..color = const Color(0xFF4ADE80).withValues(alpha: 0.40 + pulseValue * 0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12.0);
+    canvas.drawCircle(center, 22.0 + pulseValue * 4.0, starGlow);
+
+    final path = Path();
+    const int points = 8;
+    final double innerRadius = 8.0 + pulseValue * 2.0;
+    final double outerRadius = 26.0 + pulseValue * 4.0;
+
+    for (int i = 0; i < points * 2; i++) {
+      final isOuter = i.isEven;
+      final r = isOuter ? outerRadius : innerRadius;
+      final angle = (i * math.pi) / points - math.pi / 2;
+      final x = center.dx + r * math.cos(angle);
+      final y = center.dy + r * math.sin(angle);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+
+    final starPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white,
+          const Color(0xFFA7F3D0),
+          const Color(0xFF2DD4BF).withValues(alpha: 0.6),
+        ],
+        stops: const [0.0, 0.4, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: outerRadius));
+
+    canvas.drawPath(path, starPaint);
   }
 
   @override
-  bool shouldRepaint(covariant _ConstellationPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _ConstellationPainter oldDelegate) {
+    return oldDelegate.pulseValue != pulseValue;
+  }
 }

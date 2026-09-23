@@ -1,9 +1,14 @@
+// lib/widgets/glass_nav_bar.dart
+//
+// Floating glass navigation bar matching 12-screen specification exactly:
+// [Home] [Explore] [✻ Starburst] [Tasks] [Profile]
+// ─────────────────────────────────────────────────────────────────────────────
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
-/// Floating pill-shaped glass navigation bar matching the reference design.
 typedef JackBottomNavigationBar = GlassNavBar;
 
 class GlassNavBar extends StatelessWidget {
@@ -28,13 +33,13 @@ class GlassNavBar extends StatelessWidget {
       label: 'Explore',
     ),
     _NavTab(
-      icon: Icons.auto_awesome_rounded,
-      activeIcon: Icons.auto_awesome_rounded,
+      icon: Icons.auto_awesome, // Fallback, rendered with _StarburstIcon
+      activeIcon: Icons.auto_awesome,
       label: '',
     ),
     _NavTab(
-      icon: Icons.task_alt_outlined,
-      activeIcon: Icons.task_alt_rounded,
+      icon: Icons.inbox_outlined,
+      activeIcon: Icons.inbox_rounded,
       label: 'Tasks',
     ),
     _NavTab(
@@ -47,17 +52,17 @@ class GlassNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: SizedBox(
-        height: 68,
+        height: 64,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(34),
+          borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF100E1D).withValues(alpha: 0.88),
-                borderRadius: BorderRadius.circular(34),
+                color: const Color(0xFF100E1D).withValues(alpha: 0.90),
+                borderRadius: BorderRadius.circular(32),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.12),
                   width: 1,
@@ -113,44 +118,17 @@ class _NavItem extends StatelessWidget {
     final bool isCenter = index == 2;
 
     if (isCenter) {
-      // Special glowing orb center button — matches reference design
+      // 8-Ray Starburst center glyph matching reference image exactly
       return GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
-          width: 64,
-          height: 68,
+          width: 58,
+          height: 64,
           child: Center(
-            child: Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF8B5CF6),
-                    Color(0xFF00E5FF),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.5),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: Icon(
-                tab.activeIcon,
-                size: 22,
-                color: Colors.white,
-              ),
+            child: CustomPaint(
+              size: const Size(28, 28),
+              painter: _StarburstPainter(),
             ),
           ),
         ),
@@ -161,19 +139,19 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 58,
-        height: 68,
+        width: 56,
+        height: 64,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               isActive ? tab.activeIcon : tab.icon,
-              size: hasLabel ? 22 : 26,
-              color: isActive ? AppColors.accentCyan : Colors.white38,
+              size: 22,
+              color: isActive ? AppColors.accentCyan : Colors.white54,
               shadows: isActive
                   ? [
                       Shadow(
-                        color: AppColors.accentCyan.withValues(alpha: 0.6),
+                        color: AppColors.accentCyan.withValues(alpha: 0.7),
                         blurRadius: 10,
                       ),
                     ]
@@ -184,9 +162,9 @@ class _NavItem extends StatelessWidget {
               Text(
                 tab.label,
                 style: GoogleFonts.inter(
-                  fontSize: 10,
+                  fontSize: 10.5,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: isActive ? AppColors.accentCyan : Colors.white38,
+                  color: isActive ? AppColors.accentCyan : Colors.white54,
                 ),
               ),
             ],
@@ -195,4 +173,42 @@ class _NavItem extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Custom painter for the 8-ray starburst center icon seen in the reference image
+class _StarburstPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final innerR = size.width * 0.18;
+    final outerR = size.width * 0.48;
+
+    final rayPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final glowPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.4)
+      ..strokeWidth = 4.0
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0)
+      ..style = PaintingStyle.stroke;
+
+    const numRays = 8;
+    for (int i = 0; i < numRays; i++) {
+      final angle = (i * 2 * pi) / numRays;
+      final start = Offset(center.dx + innerR * cos(angle), center.dy + innerR * sin(angle));
+      final end = Offset(center.dx + outerR * cos(angle), center.dy + outerR * sin(angle));
+
+      // Glow pass
+      canvas.drawLine(start, end, glowPaint);
+      // Crisp white core
+      canvas.drawLine(start, end, rayPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

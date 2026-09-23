@@ -102,63 +102,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _submitQuery(String rawQuery) async {
+  void _submitQuery(String rawQuery) async {
     final query = rawQuery.trim();
     if (query.isEmpty) return;
 
     _searchFocus.unfocus();
     _searchController.clear();
-    if (_isListening) {
-      await _speechToText.stop();
-      setState(() => _isListening = false);
-    }
-
     HapticFeedback.lightImpact();
 
-    // 1. Check Hardware / Deterministic Reflex Action (<100ms)
-    final reflexResult = await JackMasterDispatcher.tryReflexFastPath(query);
-    if (reflexResult != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            reflexResult['message']?.toString() ?? 'Action executed on device',
-            style: GoogleFonts.inter(color: Colors.white),
-          ),
-          backgroundColor: AppColors.surfaceElevated,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+    final reflex = await JackMasterDispatcher.tryReflexFastPath(query);
+    if (reflex != null) {
       return;
     }
 
-    // 2. Check App Launch Intent
     final lower = query.toLowerCase();
     if (lower.startsWith('open ') || lower.startsWith('launch ')) {
-      final appName = lower.replaceFirst('open ', '').replaceFirst('launch ', '').trim();
-      final opened = await AppLauncherHelper.launchAppByName(appName);
-      if (opened && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Opening $appName on your device...'),
-            backgroundColor: AppColors.surfaceElevated,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      final appTarget = query.substring(lower.indexOf(' ') + 1).trim();
+      final launched = await AppLauncherHelper.launchAppByName(appTarget);
+      if (launched) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Opening $appTarget...'),
+              backgroundColor: AppColors.surfaceElevated,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
         return;
       }
     }
 
-    // 3. Navigate to Chat for Deep AI Reasoning & Product Results
-    if (!mounted) return;
-    context.push('/chat', extra: query);
+    if (mounted) {
+      context.push('/chat', extra: query);
+    }
   }
 
   @override
   void dispose() {
-    if (_isListening) _speechToText.stop();
     _searchController.dispose();
     _searchFocus.dispose();
+    _speechToText.stop();
     super.dispose();
   }
 
@@ -187,6 +172,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       error: (err, stack) => 'Easin',
     );
 
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final orbSize = (screenWidth * 0.65).clamp(210.0, 260.0);
+
     return Scaffold(
       backgroundColor: const Color(0xFF07070A),
       resizeToAvoidBottomInset: true,
@@ -195,23 +183,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Colors.white70, size: 24),
+          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
           onPressed: () => JackPermissionService.showPermissionSheet(context),
         ),
         centerTitle: true,
         title: Text(
           'JACK AGENT',
           style: GoogleFonts.inter(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            letterSpacing: 3.0,
+            letterSpacing: 2.8,
             color: Colors.white70,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded,
-                color: Colors.white70, size: 22),
+            icon: const Icon(Icons.notifications_rounded,
+                color: Colors.white, size: 22),
             onPressed: () => context.go('/tasks'),
           ),
         ],
@@ -223,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: DecoratedBox(
               decoration: const BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment(0.0, -0.4),
+                  center: Alignment(0.0, -0.3),
                   radius: 1.1,
                   colors: [
                     Color(0xFF140C2C),
@@ -238,36 +226,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-                // Greeting: Real user name
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 26.0),
-                  child: Text(
-                    'Hello $displayName!',
-                    style: GoogleFonts.inter(
-                      color: Colors.white54,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                // Greeting: Centered "Hello Easin!"
+                Text(
+                  'Hello $displayName!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.1,
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
-                // Headline: "What do you want\nJack to do?"
+                // Headline: Centered "What do you want\nJack to do?"
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 26.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Text(
                     'What do you want\nJack to do?',
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.cormorantGaramond(
                       color: Colors.white,
-                      fontSize: 40,
-                      fontWeight: FontWeight.w400,
-                      height: 1.12,
-                      letterSpacing: -0.5,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w600,
+                      height: 1.15,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ),
@@ -276,7 +264,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: Center(
                     child: JackOrb(
-                      size: 280,
+                      size: orbSize,
                       state: orbState,
                       onTap: _toggleVoiceListening,
                     ),
@@ -285,17 +273,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                 // Input bar: "Ask Jack anything..." with Search icon & White Mic Button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 22.0),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
+                    borderRadius: BorderRadius.circular(30),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                       child: Container(
-                        height: 60,
+                        height: 58,
                         padding: const EdgeInsets.only(left: 18, right: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF151522).withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(32),
+                          color: const Color(0xFF141320).withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(30),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.12),
                             width: 1.0,
@@ -338,8 +326,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             GestureDetector(
                               onTap: _toggleVoiceListening,
                               child: Container(
-                                width: 46,
-                                height: 46,
+                                width: 44,
+                                height: 44,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: _isListening
@@ -358,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       ? Icons.graphic_eq_rounded
                                       : Icons.mic_rounded,
                                   color: _isListening ? Colors.white : Colors.black,
-                                  size: 22,
+                                  size: 20,
                                 ),
                               ),
                             ),
@@ -369,60 +357,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 14),
-
-                // Quick-action suggestion chips matching reference
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Row(
-                    children: [
-                      _buildSuggestionChip('🔍 Search web', () => _submitQuery('Search the web for latest AI news')),
-                      const SizedBox(width: 8),
-                      _buildSuggestionChip('📅 Set reminder', () => _submitQuery('Set a reminder for tomorrow morning')),
-                      const SizedBox(width: 8),
-                      _buildSuggestionChip('📊 Analyze data', () => _submitQuery('Help me analyze some data')),
-                      const SizedBox(width: 8),
-                      _buildSuggestionChip('✉️ Write email', () => _submitQuery('Help me write a professional email')),
-                      const SizedBox(width: 8),
-                      _buildSuggestionChip('🛒 Shop deals', () => _submitQuery('Find me the best deals online today')),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSuggestionChip(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: const Color(0xFF151522).withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.12),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            color: Colors.white70,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
       ),
     );
   }
