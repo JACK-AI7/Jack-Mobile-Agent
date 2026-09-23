@@ -158,6 +158,7 @@ class MoreScreen extends StatelessWidget {
       bottomNavigationBar: GlassNavBar(
         currentIndex: 4, // Profile slot repurposed as "More" when isMoreActive
         isMoreActive: true,
+        exploreLabel: 'Tools',
         onTap: (index) {
           HapticFeedback.lightImpact();
           switch (index) {

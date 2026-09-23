@@ -16,6 +16,7 @@ class GlassNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
   final bool isLibraryActive;
   final bool isMoreActive;
+  final String exploreLabel;
 
   const GlassNavBar({
     super.key,
@@ -23,6 +24,7 @@ class GlassNavBar extends StatelessWidget {
     required this.onTap,
     this.isLibraryActive = false,
     this.isMoreActive = false,
+    this.exploreLabel = 'Explore',
   });
 
   static const List<_NavTab> _tabs = [
@@ -81,6 +83,7 @@ class GlassNavBar extends StatelessWidget {
                     index: i,
                     isLibraryActive: isLibraryActive && i == 2,
                     isMoreActive: isMoreActive && i == 4,
+                    exploreLabel: exploreLabel,
                     onTap: () => onTap(i),
                   );
                 }),
@@ -111,6 +114,7 @@ class _NavItem extends StatelessWidget {
   final int index;
   final bool isLibraryActive;
   final bool isMoreActive;
+  final String exploreLabel;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -119,6 +123,7 @@ class _NavItem extends StatelessWidget {
     required this.index,
     this.isLibraryActive = false,
     this.isMoreActive = false,
+    this.exploreLabel = 'Explore',
     required this.onTap,
   });
 
@@ -152,6 +157,9 @@ class _NavItem extends StatelessWidget {
     } else if (isLibraryActive) {
       effectiveIcon = Icons.grid_view_rounded;
       effectiveLabel = 'Library';
+    } else if (index == 1) {
+      effectiveIcon = isActive ? tab.activeIcon : tab.icon;
+      effectiveLabel = exploreLabel;
     } else {
       effectiveIcon = isActive ? tab.activeIcon : tab.icon;
       effectiveLabel = tab.label;

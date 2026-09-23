@@ -685,6 +685,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       bottomNavigationBar: GlassNavBar(
         currentIndex: 2, // Library tab
         isLibraryActive: true,
+        exploreLabel: 'Tools',
         onTap: (index) {
           HapticFeedback.lightImpact();
           switch (index) {

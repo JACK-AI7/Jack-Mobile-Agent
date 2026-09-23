@@ -671,6 +671,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
       // Bottom Navigation Bar matching 12-screen specification with Tools tab active
       bottomNavigationBar: GlassNavBar(
         currentIndex: 1, // Tools is Tab index 1
+        exploreLabel: 'Tools',
         onTap: (index) {
           HapticFeedback.lightImpact();
           switch (index) {

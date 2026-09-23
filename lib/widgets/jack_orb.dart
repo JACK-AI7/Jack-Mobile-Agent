@@ -277,21 +277,31 @@ class _JackOrbPainter extends CustomPainter {
       case OrbState.idle:
         // Left Ambient Pink Bloom
         final leftBloom = Paint()
-          ..color = const Color(0xFFEC4899).withValues(alpha: 0.32 + 0.06 * pulse)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+          ..color = const Color(0xFFEC4899).withValues(alpha: 0.36 + 0.06 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.50);
         canvas.drawCircle(
           Offset(center.dx - radius * 0.38 + yaw * 10, center.dy - pitch * 10),
-          radius * 0.75,
+          radius * 0.80,
           leftBloom,
+        );
+
+        // Bottom-Left Warm Golden Peach Sunrise Bloom (matches reference image)
+        final peachBloom = Paint()
+          ..color = const Color(0xFFFFD166).withValues(alpha: 0.28 + 0.05 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+        canvas.drawCircle(
+          Offset(center.dx - radius * 0.38 + yaw * 8, center.dy + radius * 0.32 - pitch * 8),
+          radius * 0.65,
+          peachBloom,
         );
 
         // Right Ambient Cyan Bloom
         final rightBloom = Paint()
-          ..color = const Color(0xFF00E5FF).withValues(alpha: 0.38 + 0.06 * pulse)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
+          ..color = const Color(0xFF00E5FF).withValues(alpha: 0.42 + 0.06 * pulse)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.50);
         canvas.drawCircle(
           Offset(center.dx + radius * 0.38 + yaw * 10, center.dy - pitch * 10),
-          radius * 0.75,
+          radius * 0.80,
           rightBloom,
         );
         break;
@@ -416,7 +426,8 @@ class _JackOrbPainter extends CustomPainter {
   void _paintRimLight(Canvas canvas, Rect sphereRect, Offset center, double radius) {
     final rimPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
+      ..strokeWidth = 2.0
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.8)
       ..shader = SweepGradient(
         transform: GradientRotation(yaw * 0.5),
         colors: const [
@@ -429,17 +440,17 @@ class _JackOrbPainter extends CustomPainter {
         ],
       ).createShader(sphereRect);
 
-    canvas.drawCircle(center, radius - 0.8, rimPaint);
+    canvas.drawCircle(center, radius - 1.0, rimPaint);
   }
 
   void _paintTwinCapsuleEyes(Canvas canvas, Offset center, double radius) {
     final eyeCenterX = center.dx + eyeOffsetX;
     final eyeCenterY = center.dy + eyeOffsetY;
 
-    // Dimensions matching reference image
-    final eyeHeight = radius * 0.42;
-    final eyeWidth = radius * 0.135;
-    final eyeSpacing = radius * 0.27; // Distance between centers
+    // Dimensions matching reference image (sleek vertical pills)
+    final eyeHeight = radius * 0.38;
+    final eyeWidth = radius * 0.12;
+    final eyeSpacing = radius * 0.28; // Distance between centers
     final cornerRadius = Radius.circular(eyeWidth / 2);
 
     final leftRect = Rect.fromCenter(
