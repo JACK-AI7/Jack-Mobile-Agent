@@ -272,12 +272,13 @@ class AppLauncherHelper {
       return syncResolved;
     }
 
-    // Tier 2: Dynamic lookup via installed_apps plugin
-    try {
-      _cachedApps ??= await InstalledApps.getInstalledApps(
-        excludeSystemApps: false,
-        withIcon: false,
-      );
+    // Tier 2: Dynamic lookup via installed_apps plugin (mobile only)
+    if (!kIsWeb) {
+      try {
+        _cachedApps ??= await InstalledApps.getInstalledApps(
+          excludeSystemApps: false,
+          withIcon: false,
+        );
 
       if (_cachedApps != null && _cachedApps!.isNotEmpty) {
         final queryLower = cleanInput.toLowerCase();
@@ -315,8 +316,9 @@ class AppLauncherHelper {
           }
         }
       }
-    } catch (e) {
-      debugPrint('[AppLauncherHelper] InstalledApps dynamic lookup failed: $e');
+      } catch (e) {
+        debugPrint('[AppLauncherHelper] InstalledApps dynamic lookup failed: $e');
+      }
     }
 
     // Tier 3: Return sync resolution or original cleaned query
@@ -325,6 +327,7 @@ class AppLauncherHelper {
 
   /// Resolves an app name and launches it on the mobile device.
   static Future<bool> launchAppByName(String appName) async {
+    if (kIsWeb) return false;
     final pkg = await resolvePackage(appName);
     if (pkg.isNotEmpty && isPackageName(pkg)) {
       try {

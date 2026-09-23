@@ -1,5 +1,6 @@
 // lib/providers/download_provider.dart
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -50,13 +51,14 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
   int _lastBytes = 0;
 
   Future<String> _dir() async {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       if ((await Permission.manageExternalStorage.request()).isGranted) {
         const p = '/storage/emulated/0/Download/JackModels';
         await Directory(p).create(recursive: true);
         return p;
       }
     }
+    if (kIsWeb) return 'JackModels';
     final d = await getApplicationDocumentsDirectory();
     final dir = Directory('${d.path}/JackModels');
     await dir.create(recursive: true);
