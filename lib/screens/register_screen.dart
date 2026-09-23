@@ -1,9 +1,15 @@
+// lib/screens/register_screen.dart
+//
+// Connected Registration Screen for JACK Mobile Agent
+// ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../services/jack_auth_state.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 import '../widgets/jack_orb.dart';
 import '../widgets/real_glass_card.dart';
 
@@ -15,11 +21,19 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _nameController = TextEditingController(text: 'Easin');
+  final _emailController = TextEditingController(text: 'easin@jack.ai');
+  final _passwordController = TextEditingController(text: 'jack2026');
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _register() async {
     final name = _nameController.text.trim();
@@ -31,6 +45,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
+    HapticFeedback.mediumImpact();
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -38,7 +53,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     try {
       await ref.read(authStateProvider.notifier).register(name, email, password);
-      // Auth state change will trigger the GoRouter redirect to home
+      if (mounted) {
+        context.go('/home');
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -52,35 +69,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF07070A),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const JackOrb(size: 80, state: OrbState.idle),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 Text(
-                  'Initialize Identity',
-                  style: AppTypography.display(
-                    size: 28,
-                    color: AppColors.textPrimary,
-                    weight: FontWeight.w600,
+                  'Create Identity',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  'Create your JACK agent profile',
-                  style: AppTypography.body(
-                    size: 14,
-                    color: AppColors.textSecondary,
+                  'Initialize your personalized agent profile',
+                  style: GoogleFonts.inter(
+                    fontSize: 13.5,
+                    color: Colors.white60,
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 36),
+
                 RealGlassCard(
-                  borderRadius: 16,
+                  borderRadius: 20,
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,110 +108,137 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                            color: Colors.redAccent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: Colors.redAccent.withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             _errorMessage!,
-                            style: AppTypography.body(size: 13, color: AppColors.error),
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              color: Colors.redAccent,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
                         const SizedBox(height: 16),
                       ],
+
+                      // Name field
                       TextField(
                         controller: _nameController,
-                        style: AppTypography.body(color: AppColors.textPrimary),
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Full Name',
-                          hintStyle: AppTypography.body(color: AppColors.textTertiary),
+                          hintStyle: GoogleFonts.inter(color: Colors.white30),
+                          prefixIcon: const Icon(Icons.person_outline_rounded,
+                              color: Colors.white54, size: 20),
                           filled: true,
-                          fillColor: AppColors.surfaceElevated.withValues(alpha: 0.5),
+                          fillColor: const Color(0xFF141320),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
+
+                      // Email field
                       TextField(
                         controller: _emailController,
-                        style: AppTypography.body(color: AppColors.textPrimary),
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           hintText: 'Email address',
-                          hintStyle: AppTypography.body(color: AppColors.textTertiary),
+                          hintStyle: GoogleFonts.inter(color: Colors.white30),
+                          prefixIcon: const Icon(Icons.email_outlined,
+                              color: Colors.white54, size: 20),
                           filled: true,
-                          fillColor: AppColors.surfaceElevated.withValues(alpha: 0.5),
+                          fillColor: const Color(0xFF141320),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
+
+                      // Password field
                       TextField(
                         controller: _passwordController,
-                        style: AppTypography.body(color: AppColors.textPrimary),
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                         obscureText: true,
                         decoration: InputDecoration(
                           hintText: 'Password',
-                          hintStyle: AppTypography.body(color: AppColors.textTertiary),
+                          hintStyle: GoogleFonts.inter(color: Colors.white30),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded,
+                              color: Colors.white54, size: 20),
                           filled: true,
-                          fillColor: AppColors.surfaceElevated.withValues(alpha: 0.5),
+                          fillColor: const Color(0xFF141320),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      GestureDetector(
-                        onTap: _isLoading ? null : _register,
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: _isLoading ? null : AppColors.primaryGradient,
-                            color: _isLoading ? AppColors.surfaceBorder : null,
+                      const SizedBox(height: 22),
+
+                      SizedBox(
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _register,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentCyan,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
                           ),
-                          child: Center(
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation(Colors.white),
-                                    ),
-                                  )
-                                : Text(
-                                    'Register',
-                                    style: AppTypography.body(
-                                      color: Colors.white,
-                                      size: 16,
-                                      weight: FontWeight.w600,
-                                    ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation(Colors.black),
                                   ),
-                          ),
+                                )
+                              : Text(
+                                  'Register & Connect',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 24),
+
                 GestureDetector(
                   onTap: () => context.pop(),
                   child: Text(
                     'Already have an account? Login',
-                    style: AppTypography.body(
-                      size: 14,
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
                       color: AppColors.accentCyan,
-                      weight: FontWeight.w500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
