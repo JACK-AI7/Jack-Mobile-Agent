@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
+import 'widgets/overlay/jack_floating_overlay_host.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,11 @@ class JackApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       routerConfig: router,
+      builder: (context, child) {
+        return JackFloatingOverlayHost(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

@@ -157,9 +157,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _initTts() async {
     try {
-      await _tts.setLanguage('en-US');
-      await _tts.setSpeechRate(0.52);
-      await _tts.setPitch(1.0);
+      await _tts.setLanguage('en-GB');
+      await _tts.setSpeechRate(0.48);
+      await _tts.setPitch(0.90); // British male baritone JARVIS
     } catch (_) {}
   }
 

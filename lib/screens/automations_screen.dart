@@ -3,7 +3,7 @@
 // 05. Automations — Pixel-to-pixel reproduction of reference image:
 // Header, filter pills (All, Personal, Work, Custom), 5 canonical interactive
 // automation cards with clickable details modal, schedule customizer, and
-// immediate execution capability.
+// immediate execution capability backed by live JackAutomationEngine.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
@@ -13,7 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/automations_provider.dart';
+import '../services/automations/jack_automation_engine.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
 
@@ -28,81 +28,14 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Personal', 'Work', 'Custom'];
 
-  // Local active states matching reference image exactly
-  final Map<String, bool> _toggleStates = {
-    'daily_brief': true,
-    'monitor_project': true,
-    'price_drops': true,
-    'social_media': false,
-    'research_competitor': true,
-  };
-
-  final List<Map<String, dynamic>> _referenceAutomations = [
-    {
-      'id': 'daily_brief',
-      'title': 'Daily AI Brief',
-      'description': 'News, emails, calendar',
-      'schedule': 'Every morning • 8:00 AM',
-      'category': 'Personal',
-      'icon': Icons.wb_sunny_rounded,
-      'color': const Color(0xFFFBBF24), // Golden Amber
-      'lastRun': 'Today, 8:00 AM',
-      'actions': ['Aggregate Google News', 'Summarize Unread Emails', 'Extract Calendar Agenda'],
-    },
-    {
-      'id': 'monitor_project',
-      'title': 'Monitor project',
-      'description': 'Track GitHub & send updates',
-      'schedule': 'Every 6 hours',
-      'category': 'Work',
-      'icon': Icons.trending_up_rounded,
-      'color': const Color(0xFF2DD4BF), // Emerald Teal
-      'lastRun': '2 hours ago',
-      'actions': ['Fetch GitHub commits', 'Check PR review requests', 'Send summary to Slack'],
-    },
-    {
-      'id': 'price_drops',
-      'title': 'Check price drops',
-      'description': 'Monitor products & alert me',
-      'schedule': 'Hourly price check',
-      'category': 'Personal',
-      'icon': Icons.sell_rounded,
-      'color': const Color(0xFFF472B6), // Vivid Pink
-      'lastRun': '25 minutes ago',
-      'actions': ['Scrape Amazon & BestBuy', 'Compare target thresholds', 'Push mobile alert'],
-    },
-    {
-      'id': 'social_media',
-      'title': 'Social media helper',
-      'description': 'Draft & schedule posts',
-      'schedule': 'Weekdays • 6:00 PM',
-      'category': 'Custom',
-      'icon': Icons.groups_rounded,
-      'color': const Color(0xFFA855F7), // Purple
-      'lastRun': 'Yesterday, 6:00 PM',
-      'actions': ['Generate LinkedIn copy', 'Draft X threads', 'Schedule Buffer queue'],
-    },
-    {
-      'id': 'research_competitor',
-      'title': 'Research competitor',
-      'description': 'Weekly market research',
-      'schedule': 'Every Sunday',
-      'category': 'Work',
-      'icon': Icons.search_rounded,
-      'color': const Color(0xFF00E5FF), // Electric Cyan
-      'lastRun': 'Last Sunday, 10:00 AM',
-      'actions': ['Crawl product release notes', 'Synthesize changelog diff', 'Email PDF report'],
-    },
-  ];
-
-  void _showAutomationDetails(Map<String, dynamic> item) {
+  void _showAutomationDetails(AutomationRoutine routine) {
     HapticFeedback.mediumImpact();
-    final id = item['id'] as String;
-    final title = item['title'] as String;
-    final color = item['color'] as Color;
-    final icon = item['icon'] as IconData;
-    final isEnabled = _toggleStates[id] ?? false;
-    final actions = (item['actions'] as List<String>?) ?? [];
+    final id = routine.id;
+    final title = routine.title;
+    final color = routine.color;
+    final icon = routine.icon;
+    final isEnabled = routine.isEnabled;
+    final actions = routine.actions;
 
     showModalBottomSheet(
       context: context,
@@ -155,7 +88,7 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                           ),
                         ),
                         Text(
-                          item['description'] as String,
+                          routine.description,
                           style: GoogleFonts.inter(
                             color: Colors.white54,
                             fontSize: 13,
@@ -173,8 +106,10 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                       thumbColor: Colors.white,
                       onChanged: (val) {
                         HapticFeedback.lightImpact();
-                        setSheetState(() => _toggleStates[id] = val);
-                        setState(() => _toggleStates[id] = val);
+                        ref
+                            .read(jackAutomationProvider.notifier)
+                            .toggleAutomation(id, val);
+                        setSheetState(() {});
                       },
                     ),
                   ),
@@ -196,9 +131,9 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                         Text('Schedule',
                             style: GoogleFonts.inter(
                                 color: Colors.white70, fontSize: 13)),
-                        Text(item['schedule'].toString().isEmpty
+                        Text(routine.schedule.isEmpty
                             ? 'Trigger on demand'
-                            : item['schedule'] as String,
+                            : routine.schedule,
                             style: GoogleFonts.inter(
                                 color: color,
                                 fontWeight: FontWeight.w600,
@@ -212,11 +147,25 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                         Text('Last Executed',
                             style: GoogleFonts.inter(
                                 color: Colors.white70, fontSize: 13)),
-                        Text(item['lastRun'] as String,
+                        Text(routine.lastRunLabel,
                             style: GoogleFonts.inter(
                                 color: Colors.white54, fontSize: 13)),
                       ],
                     ),
+                    if (routine.lastResult != null) ...[
+                      const Divider(color: Colors.white10, height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          routine.lastResult!,
+                          style: GoogleFonts.inter(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -234,9 +183,11 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                         Icon(Icons.check_circle_outline_rounded,
                             size: 16, color: color),
                         const SizedBox(width: 8),
-                        Text(act,
-                            style: GoogleFonts.inter(
-                                color: Colors.white60, fontSize: 12.5)),
+                        Expanded(
+                          child: Text(act,
+                              style: GoogleFonts.inter(
+                                  color: Colors.white60, fontSize: 12.5)),
+                        ),
                       ],
                     ),
                   )),
@@ -248,33 +199,28 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                       onPressed: () {
                         HapticFeedback.mediumImpact();
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(Icons.play_circle_fill_rounded,
-                                    color: color, size: 20),
-                                const SizedBox(width: 10),
-                                Text('Triggered $title now... Completed!'),
-                              ],
-                            ),
-                            backgroundColor: AppColors.surfaceElevated,
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                        ref
+                            .read(jackAutomationProvider.notifier)
+                            .executeRoutine(id, context);
                       },
-                      icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                      label: Text('Run Now',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                      label: Text(
+                        'Run Now',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        foregroundColor: color == const Color(0xFFFBBF24)
-                            ? Colors.black
-                            : Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: color.withValues(alpha: 0.35),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(color: color.withValues(alpha: 0.8)),
+                        ),
+                        elevation: 0,
                       ),
                     ),
                   ),
@@ -287,9 +233,20 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
     );
   }
 
+  void _showNewAutomationDialog() {
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Custom routine creator open. Ask Jack to automate anything!'),
+        backgroundColor: AppColors.surfaceElevated,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final asyncAutomations = ref.watch(automationsProvider);
+    final routines = ref.watch(jackAutomationProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF07070A),
@@ -298,8 +255,11 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -318,60 +278,78 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
             color: Colors.white70,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+            onPressed: _showNewAutomationDialog,
+          ),
+        ],
       ),
       bottomNavigationBar: GlassNavBar(
-        currentIndex: 2, // Center starburst tab
+        currentIndex: 2,
         onTap: (index) {
-          if (index == 0) context.go('/home');
-          if (index == 1) context.go('/library');
-          if (index == 2) context.go('/agent-builder');
-          if (index == 3) context.go('/tasks');
-          if (index == 4) context.go('/profile');
+          HapticFeedback.lightImpact();
+          switch (index) {
+            case 0:
+              context.go('/home');
+              break;
+            case 1:
+              context.go('/tools');
+              break;
+            case 2:
+              // Current tab
+              break;
+            case 3:
+              context.go('/tasks');
+              break;
+            case 4:
+              context.go('/profile');
+              break;
+          }
         },
       ),
       body: SafeArea(
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
 
-            // ── Header: Title & Subtitle ──────────────────────────────────
+            // ── Section Title & Subtitle ──────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Automations',
-                    style: GoogleFonts.cormorantGaramond(
-                      color: Colors.white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.3,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Set it once. Jack handles the rest.',
-                    style: GoogleFonts.inter(
-                      color: Colors.white54,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Automations',
+                style: GoogleFonts.cormorantGaramond(
+                  color: Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.3,
+                  height: 1.1,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22.0),
+              child: Text(
+                'Set it once. Jack handles the rest.',
+                style: GoogleFonts.inter(
+                  color: Colors.white54,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // ── Filter Pills: [All] [Personal] [Work] [Custom] ────────────
-            SizedBox(
-              height: 34,
+            // ── Segmented Filter Pills ────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: List.generate(_filters.length, (i) {
                     final active = _selectedFilter == i;
@@ -414,13 +392,7 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
 
             // ── Automation Cards List ─────────────────────────────────────
             Expanded(
-              child: asyncAutomations.when(
-                loading: () => _buildCardsList(),
-                error: (_, _) => _buildCardsList(),
-                data: (backendList) {
-                  return _buildCardsList(backendList);
-                },
-              ),
+              child: _buildCardsList(routines),
             ),
           ],
         ),
@@ -428,32 +400,41 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
     );
   }
 
-  Widget _buildCardsList([List<dynamic>? backendItems]) {
+  Widget _buildCardsList(List<AutomationRoutine> routines) {
     final activeFilterName = _filters[_selectedFilter];
 
-    // Filter reference items based on selected pill
-    final items = _referenceAutomations.where((item) {
+    // Filter items based on selected pill
+    final items = routines.where((item) {
       if (activeFilterName == 'All') return true;
-      return item['category'] == activeFilterName;
+      return item.category == activeFilterName;
     }).toList();
+
+    if (items.isEmpty) {
+      return Center(
+        child: Text(
+          'No ${activeFilterName.toLowerCase()} automations configured',
+          style: GoogleFonts.inter(color: Colors.white38, fontSize: 13),
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
       itemCount: items.length,
       itemBuilder: (context, index) {
-        final item = items[index];
-        final id = item['id'] as String;
-        final title = item['title'] as String;
-        final description = item['description'] as String;
-        final schedule = item['schedule'] as String;
-        final icon = item['icon'] as IconData;
-        final color = item['color'] as Color;
-        final isEnabled = _toggleStates[id] ?? false;
+        final routine = items[index];
+        final id = routine.id;
+        final title = routine.title;
+        final description = routine.description;
+        final schedule = routine.schedule;
+        final icon = routine.icon;
+        final color = routine.color;
+        final isEnabled = routine.isEnabled;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12.0),
           child: GestureDetector(
-            onTap: () => _showAutomationDetails(item),
+            onTap: () => _showAutomationDetails(routine),
             behavior: HitTestBehavior.opaque,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -533,9 +514,9 @@ class _AutomationsScreenState extends ConsumerState<AutomationsScreen> {
                           thumbColor: Colors.white,
                           onChanged: (val) {
                             HapticFeedback.lightImpact();
-                            setState(() {
-                              _toggleStates[id] = val;
-                            });
+                            ref
+                                .read(jackAutomationProvider.notifier)
+                                .toggleAutomation(id, val);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('$title ${val ? "enabled" : "disabled"}'),

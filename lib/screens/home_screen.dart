@@ -16,7 +16,10 @@ import '../services/jack_auth_state.dart';
 import '../services/realtime/agent_execution_controller.dart';
 import '../services/jack_master_dispatcher.dart';
 import '../services/app_launcher_helper.dart';
+import '../services/telephony/jack_call_screener_service.dart';
+import '../services/overlay/jack_floating_overlay_controller.dart';
 import '../services/jack_permission_service.dart';
+import '../services/voice/jack_voice_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/jack_orb.dart';
 import '../widgets/glass_nav_bar.dart';
@@ -113,6 +116,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final reflex = await JackMasterDispatcher.tryReflexFastPath(query);
     if (reflex != null) {
+      final resText = reflex['result']?.toString() ?? 'Right away, Sir.';
+      ref.read(jackVoiceProvider.notifier).speakJarvis(resText);
       return;
     }
 
@@ -199,8 +204,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Simulate Incoming Call',
+            icon: const Icon(Icons.phone_callback_rounded,
+                color: AppColors.accentCyan, size: 21),
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              JackCallScreenerService.instance.triggerIncomingCall(
+                context,
+                ref,
+                callerName: 'Sarah Jenkins (Tech Lead)',
+                phoneNumber: '+1 (415) 892-0199',
+              );
+            },
+          ),
+          IconButton(
+            tooltip: 'Jack Multitasking Overlay',
+            icon: const Icon(Icons.layers_rounded,
+                color: Color(0xFFA855F7), size: 22),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              ref.read(jackFloatingOverlayProvider.notifier).toggleExpanded();
+            },
+          ),
+          IconButton(
+            tooltip: 'Tasks & Notifications',
             icon: const Icon(Icons.notifications_rounded,
-                color: Colors.white, size: 22),
+                color: Colors.white70, size: 22),
             onPressed: () => context.go('/tasks'),
           ),
         ],

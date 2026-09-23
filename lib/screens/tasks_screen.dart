@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../providers/tasks_provider.dart';
 import '../models/task_model.dart';
+import '../services/tasks/jack_task_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
 
@@ -489,9 +490,52 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
+  Widget _buildFromJackTasks(List<JackTaskItem> tasks) {
+    final filtered = tasks.where((t) {
+      if (_selectedFilter == 1) return !t.isDone; // Running
+      if (_selectedFilter == 2) return t.isDone; // Completed
+      return true; // All
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text(
+          'No ${_filters[_selectedFilter]} tasks',
+          style: GoogleFonts.inter(color: Colors.white38, fontSize: 13),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      itemCount: filtered.length,
+      separatorBuilder: (context, index) => const Divider(
+        color: Colors.white10,
+        height: 1,
+        indent: 44,
+      ),
+      itemBuilder: (context, index) {
+        final task = filtered[index];
+        return _buildTaskRow(
+          title: task.title,
+          isDone: task.isDone,
+          statusLabel: task.statusLabel,
+          result: task.resultSummary ?? task.description,
+          onTap: () => _showTaskDetails(
+            title: task.title,
+            isDone: task.isDone,
+            statusLabel: task.statusLabel,
+            result: task.resultSummary ?? task.description,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncTasks = ref.watch(tasksProvider);
+    final liveTasks = ref.watch(jackTaskProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF07070A),
@@ -621,13 +665,15 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
             // ── Task rows — prefer real backend data, fall back to seeds ──
             Expanded(
-              child: asyncTasks.when(
-                loading: () => _buildSeedList(), // Show seed while loading
-                error: (err, _) => _buildSeedList(), // Show seed on error
-                data: (tasks) => tasks.isEmpty
-                    ? _buildSeedList() // Show seed when backend returns empty
-                    : _buildFromBackend(tasks),
-              ),
+              child: liveTasks.isNotEmpty
+                  ? _buildFromJackTasks(liveTasks)
+                  : asyncTasks.when(
+                      loading: () => _buildSeedList(),
+                      error: (err, _) => _buildSeedList(),
+                      data: (tasks) => tasks.isEmpty
+                          ? _buildSeedList()
+                          : _buildFromBackend(tasks),
+                    ),
             ),
           ],
         ),
