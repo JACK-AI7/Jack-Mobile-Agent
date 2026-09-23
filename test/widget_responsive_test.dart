@@ -97,7 +97,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         await tester.pumpWidget(buildTestHarness(const ToolsScreen()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('Tools'), findsOneWidget);
+        expect(find.text('Tools'), findsWidgets);
         expect(tester.takeException(), isNull);
       });
 
@@ -106,7 +106,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         await tester.pumpWidget(buildTestHarness(const LibraryScreen()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('Library'), findsOneWidget);
+        expect(find.text('Library'), findsWidgets);
         expect(tester.takeException(), isNull);
       });
 

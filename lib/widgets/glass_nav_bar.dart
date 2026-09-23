@@ -14,11 +14,13 @@ typedef JackBottomNavigationBar = GlassNavBar;
 class GlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool isLibraryActive;
 
   const GlassNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.isLibraryActive = false,
   });
 
   static const List<_NavTab> _tabs = [
@@ -30,7 +32,7 @@ class GlassNavBar extends StatelessWidget {
     _NavTab(
       icon: Icons.explore_outlined,
       activeIcon: Icons.explore_rounded,
-      label: 'Explore',
+      label: 'Tools',
     ),
     _NavTab(
       icon: Icons.auto_awesome, // Fallback, rendered with _StarburstIcon
@@ -75,6 +77,7 @@ class GlassNavBar extends StatelessWidget {
                     tab: _tabs[i],
                     isActive: currentIndex == i,
                     index: i,
+                    isLibraryActive: isLibraryActive && i == 2,
                     onTap: () => onTap(i),
                   );
                 }),
@@ -103,21 +106,22 @@ class _NavItem extends StatelessWidget {
   final _NavTab tab;
   final bool isActive;
   final int index;
+  final bool isLibraryActive;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.tab,
     required this.isActive,
     required this.index,
+    this.isLibraryActive = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool hasLabel = tab.label.isNotEmpty;
     final bool isCenter = index == 2;
 
-    if (isCenter) {
+    if (isCenter && !isLibraryActive) {
       // 8-Ray Starburst center glyph matching reference image exactly
       return GestureDetector(
         onTap: onTap,
@@ -135,6 +139,10 @@ class _NavItem extends StatelessWidget {
       );
     }
 
+    final effectiveIcon = isLibraryActive ? Icons.grid_view_rounded : (isActive ? tab.activeIcon : tab.icon);
+    final effectiveLabel = isLibraryActive ? 'Library' : tab.label;
+    final bool hasLabel = effectiveLabel.isNotEmpty;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -145,7 +153,7 @@ class _NavItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isActive ? tab.activeIcon : tab.icon,
+              effectiveIcon,
               size: 22,
               color: isActive ? AppColors.accentCyan : Colors.white54,
               shadows: isActive
@@ -160,7 +168,7 @@ class _NavItem extends StatelessWidget {
             if (hasLabel) ...[
               const SizedBox(height: 3),
               Text(
-                tab.label,
+                effectiveLabel,
                 style: GoogleFonts.inter(
                   fontSize: 10.5,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
