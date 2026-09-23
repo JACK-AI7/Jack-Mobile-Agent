@@ -1,12 +1,14 @@
 // lib/widgets/jack_orb.dart
 //
 // Animated JACK Orb — Pixel-perfect 3D celestial glowing orb with
-// multi-layer volumetric gradient, ambient dual-tone bloom, and
-// glowing twin capsule eyes with parallax sensor tracking.
+// multi-layer volumetric gradient, ambient dual-tone bloom,
+// glowing twin capsule eyes with parallax sensor tracking, and
+// fully interactive 3D touch rotation, dragging, and haptic feedback.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 enum OrbState { idle, thinking, working, success, error, listening }
@@ -31,6 +33,7 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
   late AnimationController _breatheCtrl;
   late AnimationController _rotateCtrl;
   late AnimationController _pulseCtrl;
+  late AnimationController _springCtrl;
   late Animation<double> _breatheAnim;
 
   StreamSubscription<AccelerometerEvent>? _accelSub;
@@ -38,6 +41,13 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
   double _eyeOffsetY = 0.0;
   double _targetOffsetX = 0.0;
   double _targetOffsetY = 0.0;
+
+  // 3D rotation angles (radians) driven by finger drag
+  double _pitch = 0.0;
+  double _yaw = 0.0;
+
+  Animation<double>? _pitchAnim;
+  Animation<double>? _yawAnim;
 
   @override
   void initState() {
@@ -56,6 +66,11 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
+
+    _springCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
 
     _breatheAnim = Tween<double>(begin: 0.96, end: 1.02).animate(
       CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut),
@@ -83,37 +98,97 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
     }
   }
 
+  void _onPanStart(DragStartDetails details) {
+    _springCtrl.stop();
+    HapticFeedback.selectionClick();
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    // 1 pixel drag = ~0.008 radians
+    setState(() {
+      _yaw = (_yaw + details.delta.dx * 0.009).clamp(-1.2, 1.2);
+      _pitch = (_pitch - details.delta.dy * 0.009).clamp(-0.8, 0.8);
+
+      // Dynamically offset eyes toward the touch motion
+      final maxOffset = widget.size * 0.06;
+      _eyeOffsetX = (_yaw / 1.2) * maxOffset;
+      _eyeOffsetY = (-_pitch / 0.8) * maxOffset;
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    _springCtrl.reset();
+    _pitchAnim = Tween<double>(begin: _pitch, end: 0.0).animate(
+      CurvedAnimation(parent: _springCtrl, curve: Curves.elasticOut),
+    );
+    _yawAnim = Tween<double>(begin: _yaw, end: 0.0).animate(
+      CurvedAnimation(parent: _springCtrl, curve: Curves.elasticOut),
+    );
+
+    _springCtrl.forward();
+    _springCtrl.addListener(() {
+      if (_pitchAnim != null && _yawAnim != null) {
+        setState(() {
+          _pitch = _pitchAnim!.value;
+          _yaw = _yawAnim!.value;
+          final maxOffset = widget.size * 0.06;
+          _eyeOffsetX = (_yaw / 1.2) * maxOffset;
+          _eyeOffsetY = (-_pitch / 0.8) * maxOffset;
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     _accelSub?.cancel();
     _breatheCtrl.dispose();
     _rotateCtrl.dispose();
     _pulseCtrl.dispose();
+    _springCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        widget.onTap?.call();
+      },
+      onPanStart: _onPanStart,
+      onPanUpdate: _onPanUpdate,
+      onPanEnd: _onPanEnd,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedBuilder(
-        animation: Listenable.merge([_breatheCtrl, _rotateCtrl, _pulseCtrl]),
+        animation: Listenable.merge([_breatheCtrl, _rotateCtrl, _pulseCtrl, _springCtrl]),
         builder: (context, child) {
           final scale = _breatheAnim.value;
 
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.0018) // 3D Perspective projection
+            ..rotateX(_pitch)
+            ..rotateY(_yaw);
+
           return Transform.scale(
             scale: scale,
-            child: SizedBox(
-              width: widget.size,
-              height: widget.size,
-              child: CustomPaint(
-                size: Size(widget.size, widget.size),
-                painter: _JackOrbPainter(
-                  progress: _rotateCtrl.value,
-                  pulse: _pulseCtrl.value,
-                  eyeOffsetX: _eyeOffsetX,
-                  eyeOffsetY: _eyeOffsetY,
-                  state: widget.state,
+            child: Transform(
+              alignment: Alignment.center,
+              transform: transform,
+              child: SizedBox(
+                width: widget.size,
+                height: widget.size,
+                child: CustomPaint(
+                  size: Size(widget.size, widget.size),
+                  painter: _JackOrbPainter(
+                    progress: _rotateCtrl.value,
+                    pulse: _pulseCtrl.value,
+                    eyeOffsetX: _eyeOffsetX,
+                    eyeOffsetY: _eyeOffsetY,
+                    state: widget.state,
+                    pitch: _pitch,
+                    yaw: _yaw,
+                  ),
                 ),
               ),
             ),
@@ -130,6 +205,8 @@ class _JackOrbPainter extends CustomPainter {
   final double eyeOffsetX;
   final double eyeOffsetY;
   final OrbState state;
+  final double pitch;
+  final double yaw;
 
   _JackOrbPainter({
     required this.progress,
@@ -137,6 +214,8 @@ class _JackOrbPainter extends CustomPainter {
     required this.eyeOffsetX,
     required this.eyeOffsetY,
     required this.state,
+    this.pitch = 0.0,
+    this.yaw = 0.0,
   });
 
   @override
@@ -201,7 +280,7 @@ class _JackOrbPainter extends CustomPainter {
           ..color = const Color(0xFFEC4899).withValues(alpha: 0.32 + 0.06 * pulse)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
         canvas.drawCircle(
-          Offset(center.dx - radius * 0.38, center.dy),
+          Offset(center.dx - radius * 0.38 + yaw * 10, center.dy - pitch * 10),
           radius * 0.75,
           leftBloom,
         );
@@ -211,7 +290,7 @@ class _JackOrbPainter extends CustomPainter {
           ..color = const Color(0xFF00E5FF).withValues(alpha: 0.38 + 0.06 * pulse)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45);
         canvas.drawCircle(
-          Offset(center.dx + radius * 0.38, center.dy),
+          Offset(center.dx + radius * 0.38 + yaw * 10, center.dy - pitch * 10),
           radius * 0.75,
           rightBloom,
         );
@@ -223,10 +302,10 @@ class _JackOrbPainter extends CustomPainter {
     if (state == OrbState.idle || state == OrbState.listening) {
       // ── Idle/Listening: Reference Image Exact Luminous Palette ───────────
 
-      // Layer 1: Base Linear Celestial Flow
+      // Layer 1: Base Linear Celestial Flow with tilt offset
       final baseGradient = LinearGradient(
-        begin: const Alignment(-1.0, -0.3),
-        end: const Alignment(1.0, 0.3),
+        begin: Alignment(-1.0 + yaw * 0.3, -0.3 + pitch * 0.3),
+        end: Alignment(1.0 + yaw * 0.3, 0.3 + pitch * 0.3),
         colors: const [
           Color(0xFFF472B6), // Soft radiant magenta / pink
           Color(0xFFE879F9), // Lilac / orchid
@@ -242,7 +321,7 @@ class _JackOrbPainter extends CustomPainter {
       // Layer 2: Radiant Cyan Dome (Right Side)
       final cyanCore = Paint()
         ..shader = RadialGradient(
-          center: const Alignment(0.68, 0.04),
+          center: Alignment(0.68 + yaw * 0.3, 0.04 - pitch * 0.3),
           radius: 0.88,
           colors: [
             const Color(0xFF00E5FF).withValues(alpha: 0.96),
@@ -256,7 +335,7 @@ class _JackOrbPainter extends CustomPainter {
       // Layer 3: Vibrant Magenta Core (Left Side)
       final magentaCore = Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.68, -0.18),
+          center: Alignment(-0.68 + yaw * 0.3, -0.18 - pitch * 0.3),
           radius: 0.92,
           colors: [
             const Color(0xFFEC4899).withValues(alpha: 0.95),
@@ -270,7 +349,7 @@ class _JackOrbPainter extends CustomPainter {
       // Layer 4: Warm Golden Peach Sunrise Glow (Bottom-Left Edge)
       final peachGlow = Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.78, 0.68),
+          center: Alignment(-0.78 + yaw * 0.25, 0.68 - pitch * 0.25),
           radius: 0.72,
           colors: [
             const Color(0xFFFFD166).withValues(alpha: 0.88),
@@ -284,7 +363,7 @@ class _JackOrbPainter extends CustomPainter {
       // Layer 5: Central Spherical Depth Core (Indigo Depth)
       final depthCore = Paint()
         ..shader = RadialGradient(
-          center: const Alignment(0.0, -0.06),
+          center: Alignment(0.0 + yaw * 0.2, -0.06 - pitch * 0.2),
           radius: 0.65,
           colors: [
             const Color(0xFF3B82F6).withValues(alpha: 0.35),
@@ -315,7 +394,7 @@ class _JackOrbPainter extends CustomPainter {
       }
 
       final gradient = SweepGradient(
-        transform: GradientRotation(progress * 2 * pi),
+        transform: GradientRotation(progress * 2 * pi + yaw),
         colors: [...palette, palette.first],
       );
       final p = Paint()..shader = gradient.createShader(sphereRect);
@@ -323,7 +402,7 @@ class _JackOrbPainter extends CustomPainter {
 
       final highlight = Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.2, -0.3),
+          center: Alignment(-0.2 + yaw * 0.3, -0.3 - pitch * 0.3),
           radius: 0.85,
           colors: [
             Colors.white.withValues(alpha: 0.3),
@@ -338,8 +417,9 @@ class _JackOrbPainter extends CustomPainter {
     final rimPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6
-      ..shader = const SweepGradient(
-        colors: [
+      ..shader = SweepGradient(
+        transform: GradientRotation(yaw * 0.5),
+        colors: const [
           Color(0xFF00E5FF),
           Color(0xFF38BDF8),
           Color(0xFFFFD166),
@@ -417,6 +497,8 @@ class _JackOrbPainter extends CustomPainter {
         oldDelegate.pulse != pulse ||
         oldDelegate.eyeOffsetX != eyeOffsetX ||
         oldDelegate.eyeOffsetY != eyeOffsetY ||
-        oldDelegate.state != state;
+        oldDelegate.state != state ||
+        oldDelegate.pitch != pitch ||
+        oldDelegate.yaw != yaw;
   }
 }

@@ -19,6 +19,7 @@ import '../services/app_launcher_helper.dart';
 import '../services/jack_permission_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/jack_orb.dart';
+import '../widgets/glass_nav_bar.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -362,6 +363,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: 0,
+        onTap: (index) {
+          HapticFeedback.lightImpact();
+          switch (index) {
+            case 0:
+              // Already on home
+              break;
+            case 1:
+              context.go('/tools');
+              break;
+            case 2:
+              context.go('/agent-builder');
+              break;
+            case 3:
+              context.go('/tasks');
+              break;
+            case 4:
+              context.go('/profile');
+              break;
+          }
+        },
       ),
     );
   }

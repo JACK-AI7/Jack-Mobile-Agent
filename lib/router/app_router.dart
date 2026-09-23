@@ -16,7 +16,6 @@ import '../screens/upgrade_screen.dart';
 import '../screens/more_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
-import '../widgets/glass_nav_bar.dart';
 import '../services/jack_auth_state.dart';
 
 class AppRoutes {
@@ -43,60 +42,6 @@ const _publicRoutes = {
   AppRoutes.login,
   AppRoutes.register,
 };
-
-/// ShellScaffold only wraps routes that do NOT have their own GlassNavBar.
-/// Tasks, Profile, More each build their own nav bar, so they're standalone.
-class _ShellScaffold extends StatefulWidget {
-  final Widget child;
-  final GoRouterState state;
-
-  const _ShellScaffold({required this.child, required this.state});
-
-  @override
-  State<_ShellScaffold> createState() => _ShellScaffoldState();
-}
-
-class _ShellScaffoldState extends State<_ShellScaffold> {
-  // Only home (0), library (1), agent-builder (2) are in ShellRoute.
-  // They map to nav bar indices 0, 1, 2 respectively.
-  static const _tabs = [
-    AppRoutes.home,
-    AppRoutes.library,
-    AppRoutes.agentBuilder,
-  ];
-
-  // All destinations for nav taps from shell screens
-  static const _allTabs = [
-    AppRoutes.home,
-    AppRoutes.library,
-    AppRoutes.agentBuilder,
-    AppRoutes.tasks,
-    AppRoutes.profile,
-  ];
-
-  int get _currentIndex {
-    final loc = widget.state.uri.path;
-    for (int i = 0; i < _tabs.length; i++) {
-      if (loc.startsWith(_tabs[i])) return i;
-    }
-    return 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: GlassNavBar(
-        currentIndex: _currentIndex,
-        onTap: (i) {
-          if (i < _allTabs.length) {
-            context.go(_allTabs[i]);
-          }
-        },
-      ),
-    );
-  }
-}
 
 class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
@@ -144,26 +89,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
       ),
-      // ShellRoute wraps only the 3 screens that do NOT build their own nav bar
-      ShellRoute(
-        builder: (context, state, child) =>
-            _ShellScaffold(state: state, child: child),
-        routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.library,
-            builder: (context, state) => const LibraryScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.agentBuilder,
-            builder: (context, state) => const BuilderScreen(),
-          ),
-        ],
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (context, state) => const HomeScreen(),
       ),
-      // Standalone routes — each builds its own GlassNavBar
+      GoRoute(
+        path: AppRoutes.library,
+        builder: (context, state) => const LibraryScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.agentBuilder,
+        builder: (context, state) => const BuilderScreen(),
+      ),
       GoRoute(
         path: AppRoutes.chat,
         builder: (context, state) =>

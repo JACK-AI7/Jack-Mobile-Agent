@@ -889,9 +889,12 @@ class _BuilderScreenState extends State<BuilderScreen>
       bottomNavigationBar: GlassNavBar(
         currentIndex: 2, // Agent Builder is center tab
         onTap: (index) {
+          HapticFeedback.lightImpact();
           if (index == 0) context.go('/home');
-          if (index == 1) context.go('/library');
-          if (index == 2) context.go('/agent-builder');
+          if (index == 1) context.go('/tools');
+          if (index == 2) {
+            // Already here
+          }
           if (index == 3) context.go('/tasks');
           if (index == 4) context.go('/profile');
         },
