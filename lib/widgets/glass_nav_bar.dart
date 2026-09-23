@@ -15,12 +15,14 @@ class GlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final bool isLibraryActive;
+  final bool isMoreActive;
 
   const GlassNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
     this.isLibraryActive = false,
+    this.isMoreActive = false,
   });
 
   static const List<_NavTab> _tabs = [
@@ -78,6 +80,7 @@ class GlassNavBar extends StatelessWidget {
                     isActive: currentIndex == i,
                     index: i,
                     isLibraryActive: isLibraryActive && i == 2,
+                    isMoreActive: isMoreActive && i == 4,
                     onTap: () => onTap(i),
                   );
                 }),
@@ -107,6 +110,7 @@ class _NavItem extends StatelessWidget {
   final bool isActive;
   final int index;
   final bool isLibraryActive;
+  final bool isMoreActive;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -114,6 +118,7 @@ class _NavItem extends StatelessWidget {
     required this.isActive,
     required this.index,
     this.isLibraryActive = false,
+    this.isMoreActive = false,
     required this.onTap,
   });
 
@@ -139,8 +144,19 @@ class _NavItem extends StatelessWidget {
       );
     }
 
-    final effectiveIcon = isLibraryActive ? Icons.grid_view_rounded : (isActive ? tab.activeIcon : tab.icon);
-    final effectiveLabel = isLibraryActive ? 'Library' : tab.label;
+    final IconData effectiveIcon;
+    final String effectiveLabel;
+    if (isMoreActive) {
+      effectiveIcon = Icons.more_horiz_rounded;
+      effectiveLabel = 'More';
+    } else if (isLibraryActive) {
+      effectiveIcon = Icons.grid_view_rounded;
+      effectiveLabel = 'Library';
+    } else {
+      effectiveIcon = isActive ? tab.activeIcon : tab.icon;
+      effectiveLabel = tab.label;
+    }
+    final bool isVisuallyActive = isActive || isMoreActive || isLibraryActive;
     final bool hasLabel = effectiveLabel.isNotEmpty;
 
     return GestureDetector(
@@ -155,8 +171,8 @@ class _NavItem extends StatelessWidget {
             Icon(
               effectiveIcon,
               size: 22,
-              color: isActive ? AppColors.accentCyan : Colors.white54,
-              shadows: isActive
+              color: isVisuallyActive ? AppColors.accentCyan : Colors.white54,
+              shadows: isVisuallyActive
                   ? [
                       Shadow(
                         color: AppColors.accentCyan.withValues(alpha: 0.7),
@@ -171,8 +187,10 @@ class _NavItem extends StatelessWidget {
                 effectiveLabel,
                 style: GoogleFonts.inter(
                   fontSize: 10.5,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: isActive ? AppColors.accentCyan : Colors.white54,
+                  fontWeight:
+                      isVisuallyActive ? FontWeight.w600 : FontWeight.w400,
+                  color:
+                      isVisuallyActive ? AppColors.accentCyan : Colors.white54,
                 ),
               ),
             ],

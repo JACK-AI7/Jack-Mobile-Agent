@@ -13,22 +13,26 @@ void main() {
           tasksProvider.overrideWith((ref) => Future.value(<TaskModel>[])),
         ],
         child: const MaterialApp(
-          home: Scaffold(body: TasksScreen()),
+          home: TasksScreen(),
         ),
       ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Verify header exists
-    expect(find.text('Tasks'), findsOneWidget);
-    
+    // Verify header exists (appears in title only, nav bar shows 'Tasks' too)
+    expect(find.text('Tasks'), findsWidgets);
+
     // Verify subtitle
     expect(find.textContaining('Track what Jack is working on'), findsOneWidget);
-    
+
     // Verify filters
     expect(find.text('All'), findsOneWidget);
     expect(find.text('Running'), findsOneWidget);
     expect(find.text('Completed'), findsOneWidget);
+
+    // Verify seed tasks are shown when backend returns empty
+    expect(find.text('Laptop research'), findsOneWidget);
+    expect(find.text('Summarize article'), findsOneWidget);
   });
 }

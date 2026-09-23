@@ -44,6 +44,8 @@ const _publicRoutes = {
   AppRoutes.register,
 };
 
+/// ShellScaffold only wraps routes that do NOT have their own GlassNavBar.
+/// Tasks, Profile, More each build their own nav bar, so they're standalone.
 class _ShellScaffold extends StatefulWidget {
   final Widget child;
   final GoRouterState state;
@@ -55,7 +57,16 @@ class _ShellScaffold extends StatefulWidget {
 }
 
 class _ShellScaffoldState extends State<_ShellScaffold> {
+  // Only home (0), library (1), agent-builder (2) are in ShellRoute.
+  // They map to nav bar indices 0, 1, 2 respectively.
   static const _tabs = [
+    AppRoutes.home,
+    AppRoutes.library,
+    AppRoutes.agentBuilder,
+  ];
+
+  // All destinations for nav taps from shell screens
+  static const _allTabs = [
     AppRoutes.home,
     AppRoutes.library,
     AppRoutes.agentBuilder,
@@ -77,7 +88,11 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
       body: widget.child,
       bottomNavigationBar: GlassNavBar(
         currentIndex: _currentIndex,
-        onTap: (i) => context.go(_tabs[i]),
+        onTap: (i) {
+          if (i < _allTabs.length) {
+            context.go(_allTabs[i]);
+          }
+        },
       ),
     );
   }
@@ -85,7 +100,7 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
 
 class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
-    ref.listen<JackAuthState>(authStateProvider, (_, _) => notifyListeners());
+    ref.listen<JackAuthState>(authStateProvider, (prev, next) => notifyListeners());
   }
 }
 
@@ -129,26 +144,59 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
       ),
+      // ShellRoute wraps only the 3 screens that do NOT build their own nav bar
       ShellRoute(
-        builder: (context, state, child) => _ShellScaffold(state: state, child: child),
+        builder: (context, state, child) =>
+            _ShellScaffold(state: state, child: child),
         routes: [
-          GoRoute(path: AppRoutes.home, builder: (context, state) => const HomeScreen()),
-          GoRoute(path: AppRoutes.library, builder: (context, state) => const LibraryScreen()),
-          GoRoute(path: AppRoutes.agentBuilder, builder: (context, state) => const BuilderScreen()),
-          GoRoute(path: AppRoutes.tasks, builder: (context, state) => const TasksScreen()),
-          GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
+          GoRoute(
+            path: AppRoutes.home,
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.library,
+            builder: (context, state) => const LibraryScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.agentBuilder,
+            builder: (context, state) => const BuilderScreen(),
+          ),
         ],
       ),
+      // Standalone routes — each builds its own GlassNavBar
       GoRoute(
         path: AppRoutes.chat,
         builder: (context, state) =>
             ChatScreen(initialQuery: state.extra as String?),
       ),
-      GoRoute(path: AppRoutes.tools, builder: (context, state) => const ToolsScreen()),
-      GoRoute(path: AppRoutes.automations, builder: (context, state) => const AutomationsScreen()),
-      GoRoute(path: AppRoutes.autonomy, builder: (context, state) => const AutonomyScreen()),
-      GoRoute(path: AppRoutes.upgrade, builder: (context, state) => const UpgradeScreen()),
-      GoRoute(path: AppRoutes.more, builder: (context, state) => const MoreScreen()),
+      GoRoute(
+        path: AppRoutes.tasks,
+        builder: (context, state) => const TasksScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.tools,
+        builder: (context, state) => const ToolsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.automations,
+        builder: (context, state) => const AutomationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.autonomy,
+        builder: (context, state) => const AutonomyScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.upgrade,
+        builder: (context, state) => const UpgradeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.more,
+        builder: (context, state) => const MoreScreen(),
+      ),
     ],
   );
 });

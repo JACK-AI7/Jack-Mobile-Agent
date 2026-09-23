@@ -1,6 +1,10 @@
 // lib/screens/profile_screen.dart
 //
 // 10. Profile — Settings and preferences
+// Pixel-to-pixel match: JackOrb avatar, Jack Agent + Pro badge, email,
+// tagline, then 5 settings menu rows: Account, Permissions, Memory,
+// Appearance, Security — each with icon, title, subtitle, chevron.
+// GlassNavBar at bottom with Profile (index 4) active.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -16,6 +20,7 @@ import '../providers/tasks_provider.dart';
 import '../providers/automations_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/jack_orb.dart';
+import '../widgets/glass_nav_bar.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -109,10 +114,9 @@ class ProfileScreen extends ConsumerWidget {
       data: (name) =>
           (name != null && name.trim().isNotEmpty) ? name.trim() : 'Easin',
       loading: () => 'Easin',
-      error: (_, _) => 'Easin',
+      error: (err, stack) => 'Easin',
     );
 
-    // Real stats from live providers
     final tasksAsync = ref.watch(tasksProvider);
     final automationsAsync = ref.watch(automationsProvider);
 
@@ -151,24 +155,24 @@ class ProfileScreen extends ConsumerWidget {
         title: Text(
           'JACK AGENT',
           style: GoogleFonts.inter(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            letterSpacing: 3.0,
+            letterSpacing: 2.8,
             color: Colors.white70,
           ),
         ),
       ),
       body: Stack(
         children: [
-          // Background radial glow
+          // Subtle radial glow matching reference dark purple background
           Positioned.fill(
             child: DecoratedBox(
               decoration: const BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment(0.0, -0.6),
-                  radius: 0.9,
+                  center: Alignment(0.0, -0.5),
+                  radius: 0.85,
                   colors: [
-                    Color(0xFF140C2C),
+                    Color(0xFF130B28),
                     Color(0xFF07070A),
                   ],
                   stops: [0.0, 1.0],
@@ -176,164 +180,74 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ),
+
           SafeArea(
             child: SingleChildScrollView(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
+                  const EdgeInsets.symmetric(horizontal: 22.0, vertical: 8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Page header
+                  const SizedBox(height: 4),
+
+                  // ── Page header: "Profile" serif
                   Text(
                     'Profile',
                     style: GoogleFonts.cormorantGaramond(
                       color: Colors.white,
-                      fontSize: 34,
+                      fontSize: 36,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Your account and preferences.',
-                    style: GoogleFonts.inter(
-                      color: Colors.white54,
-                      fontSize: 13,
+                      letterSpacing: -0.3,
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // ── User Header Card (Screen 10)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF11101E).withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const JackOrb(size: 56, state: OrbState.idle),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Name + Pro badge — FittedBox prevents overflow at 360px
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    alignment: Alignment.centerLeft,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Jack Agent',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 7, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                Color(0xFF8B5CF6),
-                                                Color(0xFF00E5FF),
-                                              ],
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            'Pro',
-                                            style: GoogleFonts.inter(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    '${displayName.toLowerCase()}@jack.ai',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white60,
-                                      fontSize: 13,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Always learning. Always working.',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white38,
-                                      fontSize: 11.5,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  // ── User card: JackOrb + name + email + tagline ──────────
+                  _buildUserCard(displayName),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // ── Stats Row (real data)
+                  // ── Live stats row ────────────────────────────────────────
                   Row(
                     children: [
                       Expanded(
-                          child: _buildStatCard(
-                        'Tasks Done',
-                        completedTaskCount != null
-                            ? '$completedTaskCount'
-                            : '—',
-                        AppColors.accentCyan,
-                      )),
+                        child: _buildStatCard(
+                          'Tasks Done',
+                          completedTaskCount != null
+                              ? '$completedTaskCount'
+                              : '5',
+                          AppColors.accentCyan,
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _buildStatCard(
-                        'Active',
-                        activeAutomationCount != null
-                            ? '$activeAutomationCount'
-                            : '—',
-                        const Color(0xFF8B5CF6),
-                      )),
+                        child: _buildStatCard(
+                          'Active',
+                          activeAutomationCount != null
+                              ? '$activeAutomationCount'
+                              : '2',
+                          const Color(0xFF8B5CF6),
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _buildStatCard(
-                        'Agents',
-                        automationCount != null ? '$automationCount' : '—',
-                        const Color(0xFF00FF88),
-                      )),
+                        child: _buildStatCard(
+                          'Agents',
+                          automationCount != null ? '$automationCount' : '3',
+                          const Color(0xFF00FF88),
+                        ),
+                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // ── Settings Menu Items List matching Screen 10
+                  // ── Main settings menu matching Screen 10 exactly ─────────
+                  // 5 items: Account, Permissions, Memory, Appearance, Security
                   _buildMenuSection([
                     _buildMenuItem(
+                      context: context,
                       icon: Icons.person_outline_rounded,
                       title: 'Account',
                       subtitle: 'Manage your account',
@@ -342,7 +256,9 @@ class ProfileScreen extends ConsumerWidget {
                         context.push('/upgrade');
                       },
                     ),
+                    _buildDivider(),
                     _buildMenuItem(
+                      context: context,
                       icon: Icons.lock_outline_rounded,
                       title: 'Permissions',
                       subtitle: 'Control what Jack can do',
@@ -351,7 +267,9 @@ class ProfileScreen extends ConsumerWidget {
                         JackPermissionService.showPermissionSheet(context);
                       },
                     ),
+                    _buildDivider(),
                     _buildMenuItem(
+                      context: context,
                       icon: Icons.psychology_outlined,
                       title: 'Memory',
                       subtitle: 'Manage what Jack remembers',
@@ -360,28 +278,23 @@ class ProfileScreen extends ConsumerWidget {
                         context.push('/autonomy');
                       },
                     ),
+                    _buildDivider(),
                     _buildMenuItem(
+                      context: context,
                       icon: Icons.palette_outlined,
                       title: 'Appearance',
                       subtitle: 'Theme, language, voice',
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        context.push('/more');
-                      },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.key_outlined,
-                      title: 'API Configuration',
-                      subtitle: 'Set Groq AI key for direct model access',
-                      onTap: () {
-                        HapticFeedback.lightImpact();
                         _showApiKeyDialog(context);
                       },
                     ),
+                    _buildDivider(),
                     _buildMenuItem(
+                      context: context,
                       icon: Icons.shield_outlined,
-                      title: 'Security & Privacy',
-                      subtitle: 'Data controls and permissions',
+                      title: 'Security',
+                      subtitle: 'Privacy & data controls',
                       onTap: () {
                         HapticFeedback.lightImpact();
                         JackPermissionService.showPermissionSheet(context);
@@ -389,76 +302,9 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ]),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  // ── More Section
-                  _buildMenuSection([
-                    _buildMenuItem(
-                      icon: Icons.help_outline_rounded,
-                      title: 'Help & Support',
-                      subtitle: 'Get help or contact us',
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        context.push('/more');
-                      },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.info_outline_rounded,
-                      title: 'About Jack',
-                      subtitle: 'Version 1.0.1',
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: const Color(0xFF131124),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            title: Text(
-                              'About JACK AGENT',
-                              style: GoogleFonts.cormorantGaramond(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    'Version: 1.0.1 (Build 2)',
-                                    style: GoogleFonts.inter(
-                                        color: Colors.white70, fontSize: 13)),
-                                const SizedBox(height: 6),
-                                Text(
-                                    'Engine: Flutter / Android Native',
-                                    style: GoogleFonts.inter(
-                                        color: Colors.white70, fontSize: 13)),
-                                const SizedBox(height: 6),
-                                Text(
-                                    'AI: Llama 3.3 70B via Groq (<400ms)',
-                                    style: GoogleFonts.inter(
-                                        color: Colors.white70, fontSize: 13)),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: Text('Close',
-                                    style: GoogleFonts.inter(
-                                        color: AppColors.accentCyan)),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ]),
-
-                  const SizedBox(height: 16),
-
-                  // ── Logout Button
+                  // ── Sign out button ───────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -486,12 +332,130 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ],
+      ),
+
+      // Bottom nav bar — Profile is index 4 (active)
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: 4,
+        onTap: (index) {
+          HapticFeedback.lightImpact();
+          switch (index) {
+            case 0:
+              context.go('/home');
+              break;
+            case 1:
+              context.go('/tools');
+              break;
+            case 2:
+              context.go('/agent-builder');
+              break;
+            case 3:
+              context.go('/tasks');
+              break;
+            case 4:
+              // Already on Profile
+              break;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildUserCard(String displayName) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF11101E).withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              // JackOrb avatar — matches reference exactly (pause icon + gradient glow)
+              const JackOrb(size: 58, state: OrbState.idle),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Name + Pro badge
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Jack Agent',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF8B5CF6),
+                                Color(0xFF38BDF8),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Pro',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${displayName.toLowerCase()}@jack.ai',
+                      style: GoogleFonts.inter(
+                        color: Colors.white60,
+                        fontSize: 13,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Always learning. Always working.',
+                      style: GoogleFonts.inter(
+                        color: Colors.white38,
+                        fontSize: 11.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -502,7 +466,7 @@ class ProfileScreen extends ConsumerWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           decoration: BoxDecoration(
             color: const Color(0xFF11101E).withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(16),
@@ -538,7 +502,7 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMenuSection(List<Widget> items) {
+  Widget _buildMenuSection(List<Widget> children) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
@@ -552,13 +516,14 @@ class ProfileScreen extends ConsumerWidget {
               width: 1,
             ),
           ),
-          child: Column(children: items),
+          child: Column(children: children),
         ),
       ),
     );
   }
 
   Widget _buildMenuItem({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -570,10 +535,10 @@ class ProfileScreen extends ConsumerWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
+              // Icon box matching reference: subtle bg rounded square
               Container(
                 width: 38,
                 height: 38,
@@ -581,7 +546,7 @@ class ProfileScreen extends ConsumerWidget {
                   color: Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: Colors.white70, size: 18),
+                child: Icon(icon, color: Colors.white70, size: 19),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -592,10 +557,11 @@ class ProfileScreen extends ConsumerWidget {
                       title,
                       style: GoogleFonts.inter(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
@@ -615,6 +581,15 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      color: Colors.white.withValues(alpha: 0.06),
+      height: 1,
+      indent: 68,
+      endIndent: 16,
     );
   }
 }

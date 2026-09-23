@@ -115,7 +115,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         await tester.pumpWidget(buildTestHarness(const TasksScreen()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('Tasks'), findsOneWidget);
+        expect(find.text('Tasks'), findsWidgets); // title + nav bar label
         expect(tester.takeException(), isNull);
       });
 
@@ -124,7 +124,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         await tester.pumpWidget(buildTestHarness(const ProfileScreen()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('Profile'), findsOneWidget);
+        expect(find.text('Profile'), findsWidgets); // title + nav bar label
         expect(tester.takeException(), isNull);
       });
 
@@ -142,7 +142,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         await tester.pumpWidget(buildTestHarness(const MoreScreen()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('More'), findsOneWidget);
+        expect(find.text('More'), findsWidgets); // title + nav bar label
         expect(tester.takeException(), isNull);
       });
     });
