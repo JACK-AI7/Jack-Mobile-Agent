@@ -38,8 +38,8 @@ dependencies:
   # For streaming SSE responses
   dio_smart_retry: ^6.0.0
 
-  # ── Local AI / ML ────────────────────────────────────────────────────────────
-  # (Removed heavy ML packages that require extra native setup — Groq handles all AI)
+  # ── Local AI / ML (ONNX Runtime GenAI for Local Llama 3.2 1B) ───────────────
+  onnxruntime_genai: ^0.1.0
 
   # ── UI enhancements ──────────────────────────────────────────────────────────
   flutter_animate: ^4.5.2

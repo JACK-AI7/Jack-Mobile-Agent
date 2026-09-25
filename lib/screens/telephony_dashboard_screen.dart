@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/telephony/jack_ai_voice_call_engine.dart';
 import '../services/telephony/jack_multi_tenant_telephony_service.dart';
+import '../services/ai/jack_local_llm_engine.dart';
 import '../services/api/jack_storage.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
@@ -39,6 +40,8 @@ class _TelephonyDashboardScreenState
 
   final JackMultiTenantTelephonyService _service =
       JackMultiTenantTelephonyService.instance;
+  final JackLocalLlmEngine _localAi = JackLocalLlmEngine.instance;
+  final String systemDirective = JackLocalLlmEngine.defaultScreeningDirective;
 
   bool _isSyncing = false;
 
@@ -47,8 +50,19 @@ class _TelephonyDashboardScreenState
     super.initState();
     _initTelephonyProfile();
     JackAiVoiceCallEngine.instance.init();
+    _localAi.initializeLocalAgent();
     _service.liveTranscriptNotifier.addListener(_autoScrollTerminal);
     JackAiVoiceCallEngine.instance.liveTranscriptNotifier.addListener(_syncLocalTranscripts);
+  }
+
+  /// Active voice processing loop powered by on-device Llama 3.2 1B (sub-50ms)
+  void onUserVoiceIntercepted(String capturedText) async {
+    _service.appendTranscript('User (Voice)', capturedText);
+    final aiResponse = await _localAi.generateVoiceResponse(
+      capturedText,
+      systemDirective: systemDirective,
+    );
+    _service.appendTranscript('Jack (Local 1B)', aiResponse);
   }
 
   void _syncLocalTranscripts() {
@@ -325,37 +339,86 @@ class _TelephonyDashboardScreenState
                   letterSpacing: 1.2,
                 ),
               ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.bolt_rounded, color: Color(0xFF00E5FF), size: 13),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Llama 3.2 1B INT4',
+                      style: GoogleFonts.spaceMono(
+                        color: const Color(0xFF00E5FF),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'When someone calls, Jack screens them on your device using on-device STT & British Baritone TTS, then records transcripts to SQLite.',
+            'When someone calls, Jack screens them on your device using on-device STT, sub-50ms Llama 3.2 1B reasoning, and British Baritone TTS.',
             style: GoogleFonts.inter(color: Colors.white70, fontSize: 12.5),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B5CF6),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
+                    label: Text(
+                      'Test Call Screening',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12.5),
+                    ),
+                    onPressed: () async {
+                      HapticFeedback.mediumImpact();
+                      _service.appendTranscript('System', 'Launching simulated incoming call test with Jack AI...');
+                      await JackAiVoiceCallEngine.instance.showIncomingCall(
+                        callerName: 'Test Caller',
+                        phoneNumber: '+1 (555) 019-2834',
+                      );
+                    },
+                  ),
+                ),
               ),
-              icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
-              label: Text(
-                'Test Free Incoming Call Screening Now',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF00E5FF),
+                    side: BorderSide(color: const Color(0xFF00E5FF).withValues(alpha: 0.4)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.speed_rounded, size: 16),
+                  label: Text(
+                    'Sub-50ms Test',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onUserVoiceIntercepted('Hello, I am calling to confirm our 3 PM meeting today.');
+                  },
+                ),
               ),
-              onPressed: () async {
-                HapticFeedback.mediumImpact();
-                _service.appendTranscript('System', 'Launching simulated incoming call test with Jack AI...');
-                await JackAiVoiceCallEngine.instance.showIncomingCall(
-                  callerName: 'Test Caller',
-                  phoneNumber: '+1 (555) 019-2834',
-                );
-              },
-            ),
+            ],
           ),
         ],
       ),

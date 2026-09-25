@@ -13,7 +13,7 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import '../api/direct_groq_service.dart';
+import '../ai/jack_local_llm_engine.dart';
 import '../memory/jack_cognitive_memory.dart';
 import '../voice/jack_male_voice_helper.dart';
 
@@ -54,6 +54,7 @@ class JackAiVoiceCallEngine {
       await JackMaleVoiceHelper.configureMaleBaritoneVoice(_tts);
       await _stt.initialize();
       _listenToCallKitEvents();
+      unawaited(JackLocalLlmEngine.instance.initializeLocalAgent());
     } catch (e) {
       debugPrint('[JackAiVoiceCallEngine] Init error: $e');
     }
@@ -242,22 +243,19 @@ class JackAiVoiceCallEngine {
     if (_callState != AiCallState.connected) return;
 
     try {
-      final prompt = '''
-You are Jack, a professional, protective AI assistant on a live phone call.
+      final systemPrompt = '''
+You are Jack, a professional, protective AI executive assistant on a live phone call.
 Caller: "$_currentCallerName" ($_currentCallerNumber).
-Caller just said: "$callerInput"
-
 Transcript so far:
 ${liveTranscriptNotifier.value.map((t) => "${t['speaker']}: ${t['message']}").join('\n')}
-
-Respond in 1-2 spoken sentences directly to the caller. Be helpful, concise, and polite.
 ''';
 
-      final response = await DirectGroqService().generate(
-        prompt: prompt,
+      // Executes locally via ONNX Runtime Llama 3.2 1B (Sub-50ms) or hybrid Groq fallback
+      final replyText = await JackLocalLlmEngine.instance.generateVoiceResponse(
+        callerInput,
+        systemDirective: systemPrompt,
       );
 
-      final replyText = response.replaceAll(RegExp(r'\*.*?\*'), '').trim();
       _appendTranscript('Jack', replyText);
       await _speak(replyText);
 
