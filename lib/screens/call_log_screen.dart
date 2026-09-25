@@ -624,6 +624,11 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Telephony Hub & Forwarding (CCF)',
+            icon: const Icon(Icons.hub_rounded, color: Color(0xFF8B5CF6), size: 22),
+            onPressed: () => context.push('/telephony-dashboard'),
+          ),
+          IconButton(
             tooltip: 'Simulate Screened Call',
             icon: const Icon(Icons.ring_volume_rounded, color: AppColors.accentCyan, size: 22),
             onPressed: _showTestCallDialog,
