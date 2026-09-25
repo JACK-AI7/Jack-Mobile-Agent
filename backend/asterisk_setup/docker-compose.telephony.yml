@@ -1,0 +1,34 @@
+# backend/asterisk_setup/docker-compose.telephony.yml
+# 100% Free Self-Hosted Asterisk PBX with AudioSocket Bridge for Jack AI Call Answering
+version: '3.8'
+
+services:
+  jack-free-ai-server:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: jack-free-ai-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - EDGE_TTS_VOICE=en-GB-RyanNeural
+    networks:
+      - telephony-net
+
+  asterisk-pbx:
+    image: andrius/asterisk:latest
+    container_name: jack-asterisk-pbx
+    restart: unless-stopped
+    network_mode: "host" # Required for raw RTP audio streaming
+    volumes:
+      - ./pjsip.conf:/etc/asterisk/pjsip.conf:ro
+      - ./extensions.conf:/etc/asterisk/extensions.conf:ro
+    depends_on:
+      - jack-free-ai-server
+
+networks:
+  telephony-net:
+    driver: bridge

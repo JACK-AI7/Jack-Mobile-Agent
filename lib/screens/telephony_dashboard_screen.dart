@@ -2,10 +2,11 @@
 //
 // Multi-Tenant AI Telephony Dashboard & Real-Time Voice Terminal for JACK.
 // Features:
-// 1. Mobile Auth & Personal SIM Caller ID Auto-Linking status badge.
-// 2. Conditional Call Forwarding (CCF) activation card with 1-tap USSD launcher.
-// 3. Command-based Outbound AI Dialing Execution Block.
-// 4. Live cyber-terminal tracking real-time WebSocket transcriptions.
+// 1. Mobile Auth & Personal SIM Caller ID Auto-Linking status badge ($0.00).
+// 2. Carrier Conditional Call Forwarding (CCF) 1-tap activation to Jack PBX.
+// 3. Simulated & Live Real Call Lifting Test Action.
+// 4. Command-based Outbound AI Dialing Execution Block.
+// 5. Live cyber-terminal tracking real-time WebSocket transcriptions + live directives.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -34,12 +35,14 @@ class _TelephonyDashboardScreenState
   final TextEditingController _taskPromptCtrl = TextEditingController(
     text: 'Call my contractor and verify if the delivery scheduled for 4 PM is on track.',
   );
+  final TextEditingController _directiveCtrl = TextEditingController();
   final ScrollController _terminalScrollCtrl = ScrollController();
 
   final JackMultiTenantTelephonyService _service =
       JackMultiTenantTelephonyService.instance;
 
   bool _isSyncing = false;
+  bool _isSimulating = false;
 
   @override
   void initState() {
@@ -53,6 +56,7 @@ class _TelephonyDashboardScreenState
     _service.liveTranscriptNotifier.removeListener(_autoScrollTerminal);
     _targetNumberCtrl.dispose();
     _taskPromptCtrl.dispose();
+    _directiveCtrl.dispose();
     _terminalScrollCtrl.dispose();
     super.dispose();
   }
@@ -136,8 +140,8 @@ class _TelephonyDashboardScreenState
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isConnected
-                      ? const Color(0xFF22C55E).withValues(alpha: 0.15)
-                      : Colors.orange.withValues(alpha: 0.15),
+                       ? const Color(0xFF22C55E).withValues(alpha: 0.15)
+                       : Colors.orange.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isConnected ? const Color(0xFF22C55E) : Colors.orange,
@@ -157,7 +161,7 @@ class _TelephonyDashboardScreenState
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      isConnected ? 'WS LIVE' : 'RECONNECTING',
+                      isConnected ? 'WS LIVE' : 'STANDBY',
                       style: GoogleFonts.inter(
                         color: isConnected ? const Color(0xFF22C55E) : Colors.orange,
                         fontSize: 10,
@@ -185,17 +189,22 @@ class _TelephonyDashboardScreenState
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           children: [
-            // ── 1. User Authentication & Personal SIM Caller ID Card ───────────
+            // ── 1. User SIM Status Card ───────────────────────────────────────
             _buildProfileStatusCard(),
 
             const SizedBox(height: 16),
 
-            // ── 2. Command-based Outbound AI Dialing Execution Block ─────────────
+            // ── 2. Carrier Call Forwarding (CCF) Setup Card ───────────────────
+            _buildCarrierCallForwardingCard(),
+
+            const SizedBox(height: 16),
+
+            // ── 3. Command-based Outbound AI Dialing Execution Block ──────────
             _buildOutboundExecutionCard(),
 
             const SizedBox(height: 16),
 
-            // ── 3. Live Real-Time Cyber-Terminal Display ────────────────────────
+            // ── 4. Live Real-Time Cyber-Terminal Display ──────────────────────
             _buildLiveTranscriptTerminal(),
 
             const SizedBox(height: 24),
@@ -273,8 +282,127 @@ class _TelephonyDashboardScreenState
               ),
               const SizedBox(height: 4),
               Text(
-                'Uses your phone\'s physical SIM card and carrier plan directly. Zero subscription fees, zero Twilio, and zero external costs.',
+                'Uses your phone\'s physical SIM and open-source PBX. Zero subscription fees, zero Twilio, and zero external costs.',
                 style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Carrier Call Forwarding (CCF) Setup Card ────────────────────────────────
+  Widget _buildCarrierCallForwardingCard() {
+    return ValueListenableBuilder<TelephonyUserConfig?>(
+      valueListenable: _service.profileNotifier,
+      builder: (ctx, config, _) {
+        final targetNum = config?.targetForwardingNumber ?? '+1 (800) 555-0199';
+        final ccfAllCode = config?.ccfAllCode ?? '*004*$targetNum#';
+        final ccfDeactCode = config?.ccfDeactivateCode ?? '##004#';
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10101C),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.25)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.phone_forwarded_rounded, color: Colors.purpleAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'CARRIER CALL FORWARDING (CCF)',
+                        style: GoogleFonts.inter(
+                          color: Colors.purpleAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.purpleAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'STANDARD GSM',
+                      style: GoogleFonts.inter(color: Colors.purpleAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'When you decline or miss a call, your phone carrier automatically forwards the call for FREE to Jack\'s Open-Source PBX to answer and talk to the caller.',
+                style: GoogleFonts.inter(color: Colors.white70, fontSize: 12, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Forwarding Target: $targetNum',
+                      style: GoogleFonts.firaCode(color: Colors.white70, fontSize: 11),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: ccfAllCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Copied USSD Code: $ccfAllCode')),
+                        );
+                      },
+                      child: const Icon(Icons.copy_rounded, color: Colors.white54, size: 16),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purpleAccent.withValues(alpha: 0.2),
+                        foregroundColor: Colors.purpleAccent,
+                        side: const BorderSide(color: Colors.purpleAccent, width: 0.8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                      label: Text('Activate ($ccfAllCode)', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold)),
+                      onPressed: () => _service.launchUssdDialer(ccfAllCode),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white54,
+                      side: const BorderSide(color: Colors.white24, width: 0.8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    ),
+                    onPressed: () => _service.launchUssdDialer(ccfDeactCode),
+                    child: Text('Cancel (##004#)', style: GoogleFonts.inter(fontSize: 11)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -355,7 +483,7 @@ class _TelephonyDashboardScreenState
               ),
               icon: const Icon(Icons.phone_rounded, size: 18),
               label: Text(
-                'Free Call via My Phone SIM (\$0.00)',
+                'Free Call via Phone SIM (\$0.00)',
                 style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               onPressed: () async {
@@ -370,31 +498,11 @@ class _TelephonyDashboardScreenState
                 HapticFeedback.heavyImpact();
                 _service.appendTranscript('System', 'Dialing $target via native SIM. Mission: "$task"');
 
-                // Launch device's native carrier dialer at $0 cost
                 final cleanNumber = target.replaceAll(RegExp(r'[^\d+]'), '');
                 final uri = Uri.parse('tel:$cleanNumber');
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri);
                 }
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
-              icon: const Icon(Icons.cloud_queue_rounded, size: 14, color: Colors.white38),
-              label: Text(
-                'Or dispatch via cloud telephony (Twilio / SIP)',
-                style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
-              ),
-              onPressed: () async {
-                final target = _targetNumberCtrl.text.trim();
-                final task = _taskPromptCtrl.text.trim();
-                if (target.isEmpty) return;
-                await _service.dispatchOutboundCall(
-                  recipientNumber: target,
-                  taskPrompt: task,
-                );
               },
             ),
           ),
@@ -406,7 +514,7 @@ class _TelephonyDashboardScreenState
   // ── Live Cyber-Terminal ─────────────────────────────────────────────────────
   Widget _buildLiveTranscriptTerminal() {
     return Container(
-      height: 380,
+      height: 440,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF090812),
@@ -431,7 +539,7 @@ class _TelephonyDashboardScreenState
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'LIVE PIPE-CAT STREAM TERMINAL',
+                    'LIVE AI CALL STREAM TERMINAL',
                     style: GoogleFonts.firaCode(
                       color: Colors.white70,
                       fontSize: 11,
@@ -442,6 +550,26 @@ class _TelephonyDashboardScreenState
               ),
               Row(
                 children: [
+                  // Test Real Call Lift Button
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      backgroundColor: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: _isSimulating
+                        ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF22C55E)))
+                        : const Icon(Icons.play_arrow_rounded, color: Color(0xFF22C55E), size: 16),
+                    label: Text(
+                      'Test Call Lift',
+                      style: GoogleFonts.inter(color: const Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: _isSimulating ? null : () async {
+                      setState(() => _isSimulating = true);
+                      await _service.simulateFreeCallLift();
+                      if (mounted) setState(() => _isSimulating = false);
+                    },
+                  ),
                   IconButton(
                     icon: const Icon(Icons.clear_all_rounded, color: Colors.white38, size: 18),
                     onPressed: _service.clearTerminal,
@@ -458,6 +586,7 @@ class _TelephonyDashboardScreenState
           ),
           const Divider(color: Colors.white10),
 
+          // Live Transcript Output Area
           Expanded(
             child: ValueListenableBuilder<List<TranscriptEntry>>(
               valueListenable: _service.liveTranscriptNotifier,
@@ -465,7 +594,7 @@ class _TelephonyDashboardScreenState
                 if (entries.isEmpty) {
                   return Center(
                     child: Text(
-                      '> Standby. Ready for incoming or outgoing calls.\n> Native SIM + Cloud Telephony Active.',
+                      '> Standby. Ready for incoming or outgoing calls.\n> Tap [Test Call Lift] to test AI answering and real-time conversation.',
                       style: GoogleFonts.firaCode(color: Colors.white24, fontSize: 11, height: 1.5),
                       textAlign: TextAlign.center,
                     ),
@@ -479,12 +608,15 @@ class _TelephonyDashboardScreenState
                     final e = entries[i];
                     final isJack = e.speaker == 'Jack';
                     final isSystem = e.speaker == 'System';
+                    final isDirective = e.speaker.contains('Directive');
 
                     final color = isJack
                         ? AppColors.accentCyan
-                        : isSystem
-                            ? Colors.white54
-                            : const Color(0xFF22C55E);
+                        : isDirective
+                            ? Colors.purpleAccent
+                            : isSystem
+                                ? Colors.white54
+                                : const Color(0xFF22C55E);
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6.0),
@@ -515,9 +647,53 @@ class _TelephonyDashboardScreenState
               },
             ),
           ),
+
+          const SizedBox(height: 8),
+
+          // Directive Input Field during Live Call
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.record_voice_over_rounded, color: Colors.purpleAccent, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _directiveCtrl,
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 12),
+                    decoration: InputDecoration(
+                      hintText: 'Whisper directive for Jack to speak (e.g. Tell them 5 PM)...',
+                      hintStyle: GoogleFonts.inter(color: Colors.white30, fontSize: 11),
+                      border: InputBorder.none,
+                    ),
+                    onSubmitted: (val) {
+                      if (val.trim().isNotEmpty) {
+                        _service.sendLiveDirective(val.trim());
+                        _directiveCtrl.clear();
+                      }
+                    },
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send_rounded, color: AppColors.accentCyan, size: 16),
+                  onPressed: () {
+                    final val = _directiveCtrl.text.trim();
+                    if (val.isNotEmpty) {
+                      _service.sendLiveDirective(val);
+                      _directiveCtrl.clear();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
-
