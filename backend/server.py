@@ -40,7 +40,15 @@ from twilio.rest import Client as TwilioClient
 from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
 import httpx
 
-from models import Base, User, TelephonyProfile, CallSession
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+try:
+    from models import Base, User, TelephonyProfile, CallSession
+except ImportError:
+    from backend.models import Base, User, TelephonyProfile, CallSession
 
 # ── Environment & Configuration ───────────────────────────────────────────────
 DATABASE_URL = os.getenv(
@@ -79,6 +87,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Startup & Health Endpoints ────────────────────────────────────────────────
+@app.on_event("startup")
+async def on_startup():
+    """Auto-initialize database tables if not existing."""
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✓ Database schema verified and initialized.")
+    except Exception as e:
+        print(f"⚠️ Database schema initialization warning: {e}")
+
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "Jack Multi-Tenant Voice AI Telephony Gateway",
+        "version": "2.0.0",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "service": "jack-telephony-ai",
+        "active_calls": len(active_call_registry),
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
 
 # ── In-Memory Real-Time Communication Hub ─────────────────────────────────────
 # Maps user_id -> List of active Flutter WebSocket connections
@@ -507,4 +547,5 @@ async def app_client_websocket(websocket: WebSocket, user_id: str, token: Option
 
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("backend.server:app" if os.path.exists("backend/server.py") else "server:app", host="0.0.0.0", port=port, reload=False)
