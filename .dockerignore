@@ -1,0 +1,12 @@
+.git
+.dart_tool
+.idea
+android
+ios
+web
+build
+backend/node_modules
+backend/dist
+__pycache__
+*.pyc
+*.iml
