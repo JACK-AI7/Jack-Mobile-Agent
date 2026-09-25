@@ -16,9 +16,7 @@ import '../screens/upgrade_screen.dart';
 import '../screens/more_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
-import '../screens/call_log_screen.dart';
 import '../screens/security_shield_screen.dart';
-import '../screens/telephony_dashboard_screen.dart';
 import '../services/jack_auth_state.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -32,7 +30,6 @@ class AppRoutes {
   static const String home          = '/home';
   static const String chat          = '/chat';
   static const String tasks         = '/tasks';
-  static const String calls         = '/calls';
   static const String library       = '/library';
   static const String tools         = '/tools';
   static const String automations   = '/automations';
@@ -42,7 +39,6 @@ class AppRoutes {
   static const String upgrade       = '/upgrade';
   static const String more          = '/more';
   static const String security      = '/security';
-  static const String telephonyDashboard = '/telephony-dashboard';
 }
 
 const _publicRoutes = {
@@ -147,16 +143,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const MoreScreen(),
       ),
       GoRoute(
-        path: AppRoutes.calls,
-        builder: (context, state) => const CallLogScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.security,
         builder: (context, state) => const SecurityShieldScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.telephonyDashboard,
-        builder: (context, state) => const TelephonyDashboardScreen(),
       ),
     ],
   );

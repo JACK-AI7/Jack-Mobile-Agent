@@ -54,7 +54,6 @@ dependencies:
   flutter_overlay_window: ^0.5.0
   flutter_markdown: ^0.7.7+1
   cached_network_image: ^3.4.1
-  flutter_callkit_incoming: ^3.1.6
   fl_chart: ^1.2.0
   audioplayers: ^6.8.1
   sqflite: ^2.4.4

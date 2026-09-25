@@ -110,14 +110,14 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
               },
             ),
             _toolTile(
-              icon: Icons.phone_forwarded_rounded,
-              title: 'Mobile Telephony Hub',
-              subtitle: 'Place carrier SIM calls and manage telephony',
+              icon: Icons.auto_mode_rounded,
+              title: 'Device Autonomy Hub',
+              subtitle: 'On-device agent automation & tools',
               color: const Color(0xFF22C55E),
               onTap: () {
                 Navigator.pop(ctx);
                 ref.read(jackFloatingOverlayProvider.notifier).minimize();
-                context.push('/telephony-dashboard');
+                context.push('/autonomy');
               },
             ),
             _toolTile(

@@ -16,7 +16,6 @@ import '../services/api/jack_storage.dart';
 import '../services/api/direct_groq_service.dart';
 import '../services/personality/jack_personality_service.dart';
 import '../services/jack_master_dispatcher.dart';
-import '../services/telephony/jack_call_screener_service.dart';
 import '../services/tasks/jack_task_service.dart';
 import '../services/overlay/jack_floating_overlay_controller.dart';
 import '../services/memory/jack_cognitive_memory.dart';
@@ -2014,17 +2013,13 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
                         onPressed: () {
                           HapticFeedback.mediumImpact();
                           Navigator.pop(ctx);
-                          JackCallScreenerService.triggerGlobally(
-                            callerName: 'Security Desk',
-                            phoneNumber: '+1 (800) 555-0199',
-                            scenarioPrompt: 'Checking routine authorization badge',
-                          );
+                          context.go('/autonomy');
                         },
-                        icon: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFFA855F7), size: 16),
-                        label: Text('Test Call Screener',
+                        icon: const Icon(Icons.smart_toy_rounded, color: Color(0xFF00E5FF), size: 16),
+                        label: Text('Open Autonomy Hub',
                             style: GoogleFonts.inter(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: const Color(0xFFA855F7).withValues(alpha: 0.5)),
+                          side: BorderSide(color: const Color(0xFF00E5FF).withValues(alpha: 0.5)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),

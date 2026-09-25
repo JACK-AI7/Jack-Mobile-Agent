@@ -92,12 +92,12 @@ class MoreScreen extends StatelessWidget {
                   children: [
                     _buildMoreItem(
                       context,
-                      icon: Icons.phone_callback_rounded,
-                      title: 'AI Call Screener & Telecom',
-                      subtitle: 'Autonomous call handling & transcripts',
+                      icon: Icons.auto_mode_rounded,
+                      title: 'Device Autonomy & Actions',
+                      subtitle: 'On-device agent automation & tools',
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        context.push('/calls');
+                        context.push('/autonomy');
                       },
                     ),
                     _buildDivider(),

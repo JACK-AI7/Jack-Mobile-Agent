@@ -148,10 +148,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'AI Call Center & Screener',
-            icon: const Icon(Icons.phone_in_talk_rounded,
+            tooltip: 'Device Autonomy & Agent Control',
+            icon: const Icon(Icons.auto_mode_rounded,
                 color: AppColors.accentCyan, size: 21),
-            onPressed: () => context.push('/calls'),
+            onPressed: () => context.push('/autonomy'),
           ),
           IconButton(
             tooltip: 'Jack Multitasking Overlay',

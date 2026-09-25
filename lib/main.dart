@@ -11,21 +11,18 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'services/jack_master_dispatcher.dart';
 import 'services/api/direct_groq_service.dart';
-import 'services/telephony/jack_call_screener_service.dart' as import_call_service;
 import 'services/voice/jack_male_voice_helper.dart';
 import 'services/tasks/jack_task_service.dart';
 import 'services/immortal/jack_immortal_service.dart';
 import 'services/voice/jack_wake_word_service.dart';
 import 'services/memory/jack_cognitive_memory.dart';
-import 'services/telephony/jack_ai_voice_call_engine.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize SQLite Cognitive Memory & WebRTC Call Engine
+  // Initialize SQLite Cognitive Memory
   try {
     await JackCognitiveMemory().init();
-    await JackAiVoiceCallEngine.instance.init();
   } catch (_) {}
 
   // Force portrait orientation
@@ -67,10 +64,8 @@ class JackApp extends ConsumerStatefulWidget {
 }
 
 class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
-  static const EventChannel _callChannel = EventChannel('com.jack.agent/calls');
   static const MethodChannel _overlayChannel =
       MethodChannel('com.jack.agent/overlay');
-  StreamSubscription? _callSub;
 
   final stt.SpeechToText _overlaySpeech = stt.SpeechToText();
   final FlutterTts _overlayTts = FlutterTts();
@@ -83,10 +78,6 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    // Initialize Telephony Call Screener global handles
-    import_call_service.JackCallScreenerService.navigatorKey = rootNavigatorKey;
-    import_call_service.JackCallScreenerService.globalRef = ref;
 
     // Initialize Jack Immortal 24/7 Background Persistence & Daemon
     ref.read(jackImmortalProvider);
@@ -114,16 +105,6 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
           await _overlaySpeech.stop();
           await _overlayTts.stop();
         } catch (_) {}
-      }
-    });
-
-    // Passive call observer: monitors state transitions for logging without hijacking
-    _callSub = _callChannel.receiveBroadcastStream().listen((event) {
-      if (event is Map) {
-        final evType = event['event'];
-        final cNum = event['number']?.toString() ?? '';
-        final cName = event['contactName']?.toString() ?? cNum;
-        debugPrint('[Telephony] Event: $evType, Number: $cNum, Contact: $cName');
       }
     });
   }
@@ -344,7 +325,6 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _callSub?.cancel();
     _overlayInactivityTimer?.cancel();
     _overlaySpeech.stop();
     _overlayTts.stop();

@@ -49,7 +49,6 @@ class MainActivity : FlutterActivity() {
     private val DOM_CHANNEL     = "com.jack.agent/accessibility"
     private val OVERLAY_CHANNEL = "com.jack.agent/overlay"
     private val NOTIF_CHANNEL   = "com.jack.agent/notifications"
-    private val CALL_CHANNEL    = "com.jack.agent/calls"
     private val CALL_TALK_CHANNEL = "com.jack.agent/call_talk"
     private val SHIZUKU_CHANNEL = "com.jack.agent/shizuku"
 
@@ -1001,17 +1000,6 @@ class MainActivity : FlutterActivity() {
                 }
                 override fun onCancel(arguments: Any?) {
                     JackNotificationListener.onNotification = null
-                }
-            })
-
-        // ── Call Events Channel ─────────────────────────────────────────────
-        EventChannel(flutterEngine.dartExecutor.binaryMessenger, CALL_CHANNEL)
-            .setStreamHandler(object : EventChannel.StreamHandler {
-                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    JackCallReceiver.callEventSink = events
-                }
-                override fun onCancel(arguments: Any?) {
-                    JackCallReceiver.callEventSink = null
                 }
             })
     }

@@ -13,8 +13,8 @@ import 'app_launcher_helper.dart';
 import 'jack_controller.dart';
 import 'jack_shizuku_controller.dart';
 import 'trajectory_cache_service.dart';
+import 'agent/jack_droid_run_engine.dart';
 import 'tasks/jack_task_service.dart';
-import 'telephony/jack_call_screener_service.dart';
 
 class JackMasterDispatcher {
   JackMasterDispatcher._();
@@ -541,87 +541,39 @@ class JackMasterDispatcher {
           "data": {"level": brightLevel},
         };
 
+      case "autonomous_goal":
+      case "droid_run":
+      case "run_agent":
+      case "automate_app":
+      case "control_phone":
+        final goal = (params['goal'] ?? params['prompt'] ?? params['task'] ?? '').toString();
+        if (goal.isNotEmpty) {
+          JackDroidRunEngine.instance.executeGoal(goal);
+          return {
+            "status": "success",
+            "message": "Initializing on-device autonomous execution for: $goal",
+            "type": "autonomy",
+          };
+        }
+        return {
+          "status": "error",
+          "message": "Please specify a goal for the autonomous agent.",
+          "type": "autonomy",
+        };
+
       case "make_call":
       case "direct_call":
       case "call":
       case "dial":
-        final String callTarget = (params['target'] ?? params['number'] ?? params['contact'] ?? params['name'] ?? '').toString().trim();
-        if (callTarget.isEmpty) {
-          return {
-            "status": "error",
-            "message": "Who would you like me to call, Sir?",
-            "type": "telephony",
-          };
-        }
-        try {
-          final res = await _legacyChannel.invokeMethod('directCall', {'number': callTarget});
-          if (res == 'SUCCESS') {
-            await JackTaskRecorder.appendSessionAction('Call $callTarget', 'Dialed via Phone');
-            return {
-              "status": "success",
-              "message": "Calling $callTarget now, Sir.",
-              "type": "telephony",
-              "data": {"target": callTarget, "status": "dialing"},
-            };
-          } else if (res == 'NOT_FOUND') {
-            return {
-              "status": "error",
-              "message": "Could not find contact '$callTarget' in your phonebook, Sir.",
-              "type": "telephony",
-            };
-          } else if (res == 'NO_PERMISSION') {
-            return {
-              "status": "error",
-              "message": "Phone call permission is required to dial directly, Sir.",
-              "type": "telephony",
-            };
-          } else {
-            return {
-              "status": "error",
-              "message": "Unable to initiate call to $callTarget.",
-              "type": "telephony",
-            };
-          }
-        } catch (e) {
-          return {
-            "status": "error",
-            "message": "Call failed: $e",
-            "type": "telephony",
-          };
-        }
-
       case "screen_call":
       case "screen_incoming_call":
       case "talk_to_caller":
-        String callerName = 'Sarah Jenkins';
-        String phoneNumber = '+1 (415) 892-0199';
-        final q = (params['query'] ?? '').toString().toLowerCase();
-        if (q.contains('from')) {
-          final parts = q.split('from');
-          if (parts.length > 1 && parts[1].trim().isNotEmpty) {
-            callerName = parts[1].trim();
-          }
-        }
-        JackCallScreenerService.triggerGlobally(
-          callerName: callerName,
-          phoneNumber: phoneNumber,
-        );
-        return {
-          "status": "success",
-          "message": "Activating autonomous call screening protocol for $callerName. Jack is taking the call.",
-          "type": "telephony",
-          "data": {"caller": callerName, "status": "screening"},
-        };
-
       case "end_call":
       case "hang_up":
-        try {
-          await _legacyChannel.invokeMethod('endCall');
-        } catch (_) {}
         return {
-          "status": "success",
-          "message": "Call ended, Sir.",
-          "type": "telephony",
+          "status": "info",
+          "message": "Telephony has been decoupled. Jack now focuses 100% on on-device app control via DroidRun and OpenGUI.",
+          "type": "autonomy",
         };
 
       case "send_sms":
