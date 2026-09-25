@@ -96,9 +96,9 @@ async def on_startup():
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        print("✓ Database schema verified and initialized.")
+        print("[INFO] Database schema verified and initialized.")
     except Exception as e:
-        print(f"⚠️ Database schema initialization warning: {e}")
+        print(f"[WARNING] Database schema initialization: {e}")
 
 
 @app.get("/")
