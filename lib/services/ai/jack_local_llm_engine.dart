@@ -107,7 +107,7 @@ Keep responses under 2 natural spoken sentences for sub-50ms voice synthesis.
       }
 
       final baseUrl = customBaseUrl ??
-          'https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct-ONNX/resolve/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4';
+          'https://huggingface.co/onnx-community/Llama-3.2-1B-Instruct-GENAI-ONNX/resolve/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4';
 
       final files = [
         'genai_config.json',
