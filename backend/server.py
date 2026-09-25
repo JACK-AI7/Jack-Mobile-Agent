@@ -51,12 +51,13 @@ except ImportError:
     from backend.models import Base, User, TelephonyProfile, CallSession
 
 # ── Environment & Configuration ───────────────────────────────────────────────
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite+aiosqlite:///./telephony.db",
-)
-# Normalize Postgres URL for asyncpg if running on Railway/Heroku
-if DATABASE_URL.startswith("postgres://"):
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+if not DATABASE_URL or DATABASE_URL.startswith("sqlite"):
+    # On serverless platforms (e.g. Vercel/AWS Lambda), only /tmp is writable
+    db_path = "/tmp/telephony.db" if os.name != "nt" else "./telephony.db"
+    DATABASE_URL = f"sqlite+aiosqlite:///{db_path}"
+elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
 elif DATABASE_URL.startswith("postgresql://") and "+asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)

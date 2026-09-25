@@ -9,3 +9,6 @@ for d in (root_dir, backend_dir):
         sys.path.insert(0, d)
 
 from backend.server import app
+
+# Vercel ASGI application handler
+handler = app
