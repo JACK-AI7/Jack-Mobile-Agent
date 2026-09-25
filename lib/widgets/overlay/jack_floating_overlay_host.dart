@@ -11,7 +11,6 @@
 // - Six-Position Snap Grid: Top-L/R, Mid-L/R, Bot-L/R magnetic snap
 // - Drag to Dismiss: Circular cross (X) zone at bottom center with magnetic expand & haptics
 // ─────────────────────────────────────────────────────────────────────────────
-import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +21,7 @@ import '../../services/api/direct_groq_service.dart';
 import '../../services/overlay/jack_floating_overlay_controller.dart';
 import '../../services/telephony/jack_call_screener_service.dart';
 import '../../services/voice/jack_voice_service.dart';
+import '../../services/voice/jack_wake_word_service.dart';
 import '../../theme/app_colors.dart';
 import '../jack_orb.dart';
 
@@ -209,21 +209,30 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
       if (clean.isNotEmpty) {
         ref.read(jackVoiceProvider.notifier).speakJarvis(clean);
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(clean.isNotEmpty ? clean : 'Jack responded to your query.'),
-          backgroundColor: const Color(0xFF1D1836),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(clean.isNotEmpty ? clean : 'Jack responded to your query.'),
+            backgroundColor: const Color(0xFF1D1836),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final overlayState = ref.watch(jackFloatingOverlayProvider);
+    final wakeWordState = ref.watch(jackWakeWordProvider);
     final notifier = ref.read(jackFloatingOverlayProvider.notifier);
+
+    ref.listen<JackWakeWordState>(jackWakeWordProvider, (prev, next) {
+      if (next.isWokenUp && !(prev?.isWokenUp ?? false)) {
+        notifier.expand();
+      }
+    });
 
     final screenSize = MediaQuery.sizeOf(context);
     final safeArea = MediaQuery.paddingOf(context);
@@ -615,14 +624,19 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
 
                                   // Mic / Audio Toggle
                                   _multimodalButton(
-                                    icon: overlayState.isListening
+                                    icon: (overlayState.isListening || wakeWordState.isWokenUp)
                                         ? Icons.mic_rounded
                                         : Icons.mic_off_rounded,
-                                    label: overlayState.isListening ? 'Live' : 'Muted',
-                                    color: overlayState.isListening
+                                    label: wakeWordState.isWokenUp
+                                        ? 'Awake'
+                                        : (overlayState.isListening ? 'Live' : 'Muted'),
+                                    color: (overlayState.isListening || wakeWordState.isWokenUp)
                                         ? AppColors.accentPink
                                         : Colors.white54,
-                                    onTap: notifier.toggleVoiceListening,
+                                    onTap: () {
+                                      HapticFeedback.mediumImpact();
+                                      ref.read(jackWakeWordProvider.notifier).wakeUpManually();
+                                    },
                                   ),
 
                                   const Spacer(),
@@ -646,7 +660,7 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
-                                          'Easin',
+                                          'Jaswanth',
                                           style: GoogleFonts.inter(
                                             color: Colors.white70,
                                             fontSize: 12,
@@ -707,7 +721,9 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            overlayState.statusText,
+                                            (wakeWordState.isWokenUp || wakeWordState.isAwaitingTask)
+                                                ? "Hi Sir, what's the task?"
+                                                : overlayState.statusText,
                                             style: GoogleFonts.inter(
                                               color: Colors.white,
                                               fontSize: 14,
@@ -729,7 +745,11 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
 
                                   // System Hint Text
                                   Text(
-                                    overlayState.hintText,
+                                    wakeWordState.isAwaitingTask
+                                        ? (wakeWordState.lastRecognized.isNotEmpty
+                                            ? wakeWordState.lastRecognized
+                                            : 'Jack is listening for your task...')
+                                        : overlayState.hintText,
                                     style: GoogleFonts.inter(
                                       color: Colors.white70,
                                       fontSize: 12.5,

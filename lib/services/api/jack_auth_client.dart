@@ -101,7 +101,7 @@ class JackAuthClient {
 
   static String _deriveNameFromEmail(String email) {
     final prefix = email.split('@').first.trim();
-    if (prefix.isEmpty) return 'Easin';
+    if (prefix.isEmpty) return 'Jaswanth';
     return prefix[0].toUpperCase() + prefix.substring(1);
   }
 

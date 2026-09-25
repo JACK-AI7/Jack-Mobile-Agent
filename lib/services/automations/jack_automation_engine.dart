@@ -12,7 +12,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../theme/app_colors.dart';
 import '../api/direct_groq_service.dart';
 import '../api/jack_storage.dart';
 import '../notifications/jack_notification_service.dart';
@@ -90,98 +89,7 @@ class JackAutomationNotifier extends StateNotifier<List<AutomationRoutine>> {
     _initAutomations();
   }
 
-  static final List<AutomationRoutine> _defaults = [
-    AutomationRoutine(
-      id: 'daily_brief',
-      title: 'Daily AI Brief',
-      description: 'News, emails, calendar',
-      schedule: 'Every morning • 8:00 AM',
-      category: 'Personal',
-      icon: Icons.wb_sunny_rounded,
-      color: const Color(0xFFFBBF24), // Golden Amber
-      isEnabled: true,
-      lastRunAt: DateTime.now().subtract(const Duration(hours: 2)),
-      lastResult:
-          'Morning brief generated: 3 priority calendar events, 4 urgent emails triaged, AI industry news summary.',
-      actions: [
-        'Aggregate Google News',
-        'Summarize Unread Emails',
-        'Extract Calendar Agenda',
-      ],
-    ),
-    AutomationRoutine(
-      id: 'monitor_project',
-      title: 'Monitor project',
-      description: 'Track GitHub & send updates',
-      schedule: 'Every 6 hours',
-      category: 'Work',
-      icon: Icons.trending_up_rounded,
-      color: const Color(0xFF2DD4BF), // Emerald Teal
-      isEnabled: true,
-      lastRunAt: DateTime.now().subtract(const Duration(minutes: 42)),
-      lastResult:
-          'GitHub synced: 4 new commits on branch main. All CI tests passing (41/41). Zero open security alerts.',
-      actions: [
-        'Fetch GitHub commits',
-        'Check PR review requests',
-        'Send summary to Slack',
-      ],
-    ),
-    AutomationRoutine(
-      id: 'price_drops',
-      title: 'Check price drops',
-      description: 'Monitor products & alert me',
-      schedule: 'Hourly price check',
-      category: 'Personal',
-      icon: Icons.sell_rounded,
-      color: const Color(0xFFF472B6), // Vivid Pink
-      isEnabled: true,
-      lastRunAt: DateTime.now().subtract(const Duration(minutes: 18)),
-      lastResult:
-          'Price tracker detected price drop on Lenovo LOQ 15 (\$799 -> \$749, save \$50). ASUS TUF A15 holding at \$899.',
-      actions: [
-        'Scrape Amazon & BestBuy',
-        'Compare target thresholds',
-        'Push mobile alert',
-      ],
-    ),
-    AutomationRoutine(
-      id: 'social_media',
-      title: 'Social media helper',
-      description: 'Draft & schedule posts',
-      schedule: 'Weekdays • 6:00 PM',
-      category: 'Custom',
-      icon: Icons.groups_rounded,
-      color: const Color(0xFFA855F7), // Purple
-      isEnabled: false,
-      lastRunAt: DateTime.now().subtract(const Duration(days: 1)),
-      lastResult:
-          'Drafted 1 LinkedIn thought leadership post on autonomous mobile agents and 1 X launch thread.',
-      actions: [
-        'Generate LinkedIn copy',
-        'Draft X threads',
-        'Schedule Buffer queue',
-      ],
-    ),
-    AutomationRoutine(
-      id: 'research_competitor',
-      title: 'Research competitor',
-      description: 'Weekly market research',
-      schedule: 'Every Sunday',
-      category: 'Work',
-      icon: Icons.search_rounded,
-      color: const Color(0xFF00E5FF), // Electric Cyan
-      isEnabled: true,
-      lastRunAt: DateTime.now().subtract(const Duration(days: 2)),
-      lastResult:
-          'Competitor briefing: Benchmarked Jack against Rabbit R1 and Devin on real mobile device autonomy.',
-      actions: [
-        'Crawl product release notes',
-        'Synthesize changelog diff',
-        'Email PDF report',
-      ],
-    ),
-  ];
+  static final List<AutomationRoutine> _defaults = [];
 
   Future<void> _initAutomations() async {
     try {
@@ -237,7 +145,7 @@ class JackAutomationNotifier extends StateNotifier<List<AutomationRoutine>> {
         case 'daily_brief':
           final groq = _ref.read(directGroqServiceProvider);
           final prompt =
-              "Provide a crisp, professional 3-bullet morning executive briefing for Easin on today's top tech developments, "
+              "Provide a crisp, professional 3-bullet morning executive briefing for Jaswanth on today's top tech developments, "
               "simulated calendar focus (Design Review at 2pm, Team Sync at 4pm), and 0 urgent unread emails.";
           try {
             executionSummary = await groq.generate(prompt: prompt);
@@ -355,13 +263,15 @@ class JackAutomationNotifier extends StateNotifier<List<AutomationRoutine>> {
     ));
 
     // Show persistent notification
-    JackNotificationService.showHeadsUp(
-      context: context,
-      title: 'Automation: ${routine.title}',
-      message: executionSummary.split('\n').first,
-      icon: routine.icon,
-      accentColor: routine.color,
-    );
+    if (context.mounted) {
+      JackNotificationService.showHeadsUp(
+        context: context,
+        title: 'Automation: ${routine.title}',
+        message: executionSummary.split('\n').first,
+        icon: routine.icon,
+        accentColor: routine.color,
+      );
+    }
 
     return executionSummary;
   }

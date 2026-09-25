@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,39 +17,22 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../services/api/direct_groq_service.dart';
-import '../services/jack_master_dispatcher.dart';
+import '../models/product_card_model.dart';
+import '../services/agents/jack_multi_agent_orchestrator.dart';
 import '../services/app_launcher_helper.dart';
 import '../theme/app_colors.dart';
 import '../widgets/jack_orb.dart';
-
-class _ProductCardItem {
-  final String title;
-  final String price;
-  final String ratingValue;
-  final String reviewsCount;
-  final String screenText;
-  final Color screenGlowColor;
-  final List<Color> wallpaperColors;
-  final Map<String, String> specs;
-
-  const _ProductCardItem({
-    required this.title,
-    required this.price,
-    required this.ratingValue,
-    required this.reviewsCount,
-    required this.screenText,
-    required this.screenGlowColor,
-    required this.wallpaperColors,
-    required this.specs,
-  });
-}
+import '../widgets/animations/loading_dev_indicators.dart';
+import '../services/voice/jack_male_voice_helper.dart';
+import '../services/jack_master_dispatcher.dart';
 
 class _ChatMessage {
   final String id;
   final String text;
   final bool isUser;
-  final List<_ProductCardItem>? products;
+  final List<ProductCardItem>? products;
+  final List<AgentExecutionStep>? steps;
+  final List<String>? involvedAgents;
   final DateTime timestamp;
 
   const _ChatMessage({
@@ -56,6 +40,8 @@ class _ChatMessage {
     required this.text,
     required this.isUser,
     this.products,
+    this.steps,
+    this.involvedAgents,
     required this.timestamp,
   });
 }
@@ -80,6 +66,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _speechInitialized = false;
   bool _isListening = false;
   bool _isThinking = false;
+  String _workingAgentName = 'Executive Planner';
+  String _workingAgentStatus = 'Reasoning...';
+  final List<ThoughtLineStep> _activeThinkingSteps = [];
 
   final List<_ChatMessage> _messages = [];
 
@@ -89,77 +78,107 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _initTts();
     _initSpeech();
 
-    // Seed canonical conversation from reference specification
-    _messages.addAll([
-      _ChatMessage(
-        id: 'user_1',
-        text: 'Find me the best laptop deals\nunder \$1000 for AI/ML development.',
-        isUser: true,
-        timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
-      ),
-      _ChatMessage(
-        id: 'jack_1',
-        text:
-            'I found some great options for you. These laptops offer the best performance for AI/ML development under \$1000.',
-        isUser: false,
-        timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
-        products: [
-          const _ProductCardItem(
-            title: 'Lenovo LOQ 15',
-            price: '\$799',
-            ratingValue: '4.6',
-            reviewsCount: '(1.2K reviews)',
-            screenText: 'LOQ 15',
-            screenGlowColor: Color(0xFF00E5FF),
-            wallpaperColors: [
-              Color(0xFF00E5FF),
-              Color(0xFF2563EB),
-              Color(0xFF090915),
-            ],
-            specs: {
-              'GPU': 'NVIDIA RTX 4060 8GB GDDR6',
-              'CPU': 'AMD Ryzen 7 7735HS (8 Cores)',
-              'RAM': '16 GB DDR5 4800MHz',
-              'Storage': '512 GB PCIe 4.0 NVMe SSD',
-              'Display': '15.6" 144Hz FHD 100% sRGB',
-            },
-          ),
-          const _ProductCardItem(
-            title: 'ASUS TUF A15',
-            price: '\$899',
-            ratingValue: '4.5',
-            reviewsCount: '(856 reviews)',
-            screenText: 'TUF A15',
-            screenGlowColor: Color(0xFFEF4444),
-            wallpaperColors: [
-              Color(0xFFEF4444),
-              Color(0xFF991B1B),
-              Color(0xFF090915),
-            ],
-            specs: {
-              'GPU': 'NVIDIA RTX 4060 8GB (140W Max)',
-              'CPU': 'AMD Ryzen 7 7735HS',
-              'RAM': '16 GB DDR5 4800MHz',
-              'Storage': '512 GB NVMe M.2 SSD',
-              'Display': '15.6" 144Hz IPS FreeSync',
-            },
-          ),
-        ],
-      ),
-    ]);
-
     if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _sendMessage(widget.initialQuery!.trim());
       });
+    } else {
+      _initCanonicalConversation();
     }
+  }
+
+  void _initCanonicalConversation() {
+    _messages.addAll([
+      _ChatMessage(
+        id: 'msg_canonical_user',
+        text: 'Find me the best laptop deals under \$1,000 right now.',
+        isUser: true,
+        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+      ),
+      _ChatMessage(
+        id: 'msg_canonical_jack',
+        text:
+            'I found two standout gaming and productivity machines currently discounted on Amazon and Best Buy with top price-to-performance ratings:',
+        isUser: false,
+        steps: [
+          AgentExecutionStep(
+            agentId: 'executive',
+            agentName: 'Executive Planner',
+            badgeColor: const Color(0xFF00E5FF),
+            title: 'Goal Analysis & Planning',
+            detail: 'Decomposed intent: Find verified laptop deals under \$1,000.',
+            timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+          ),
+          AgentExecutionStep(
+            agentId: 'deep_research',
+            agentName: 'Deep Research Specialist',
+            badgeColor: const Color(0xFF2DD4BF),
+            title: 'Google Grounding & Spec Normalization',
+            detail:
+                'Grounded live deals across major retailers; identified Lenovo LOQ 15 and ASUS TUF A15 with RTX 4050 GPUs.',
+            timestamp:
+                DateTime.now().subtract(const Duration(minutes: 4, seconds: 40)),
+          ),
+          AgentExecutionStep(
+            agentId: 'executive',
+            agentName: 'Executive Planner',
+            badgeColor: const Color(0xFF00E5FF),
+            title: 'Final Synthesis',
+            detail: 'Synthesized side-by-side product cards with verified ratings.',
+            timestamp:
+                DateTime.now().subtract(const Duration(minutes: 4, seconds: 20)),
+          ),
+        ],
+        involvedAgents: const [
+          'Executive Planner',
+          'Deep Research Specialist',
+        ],
+        products: const [
+          ProductCardItem(
+            title: 'Lenovo LOQ 15',
+            price: '\$899.99',
+            ratingValue: '4.8',
+            reviewsCount: '2.4k',
+            screenText: 'LOQ 15',
+            screenGlowColor: Color(0xFF00E5FF),
+            wallpaperColors: [Color(0xFF00E5FF), Color(0xFF1E1B4B)],
+            specs: {
+              'Processor': 'Intel Core i5-13420H (13th Gen)',
+              'Graphics': 'NVIDIA GeForce RTX 4050 6GB GDDR6',
+              'Display': '15.6" FHD (1920x1080) 144Hz IPS',
+              'RAM': '16GB DDR5 5200MHz',
+              'Storage': '512GB PCIe NVMe Gen4 SSD',
+            },
+            purchaseUrl:
+                'https://www.google.com/search?q=Lenovo+LOQ+15+buy+deals',
+          ),
+          ProductCardItem(
+            title: 'ASUS TUF A15',
+            price: '\$849.00',
+            ratingValue: '4.7',
+            reviewsCount: '3.1k',
+            screenText: 'TUF A15',
+            screenGlowColor: Color(0xFF7C3AED),
+            wallpaperColors: [Color(0xFF7C3AED), Color(0xFF3B0764)],
+            specs: {
+              'Processor': 'AMD Ryzen 7 7735HS (8 cores)',
+              'Graphics': 'NVIDIA GeForce RTX 4050 6GB',
+              'Display': '15.6" FHD 144Hz 100% sRGB',
+              'RAM': '16GB DDR5 Dual Channel',
+              'Storage': '512GB PCIe 4.0 SSD + Extra M.2 slot',
+            },
+            purchaseUrl:
+                'https://www.google.com/search?q=ASUS+TUF+A15+buy+deals',
+          ),
+        ],
+        timestamp: DateTime.now().subtract(const Duration(minutes: 4)),
+      ),
+    ]);
   }
 
   Future<void> _initTts() async {
     try {
-      await _tts.setLanguage('en-GB');
-      await _tts.setSpeechRate(0.48);
-      await _tts.setPitch(0.90); // British male baritone JARVIS
+      await JackMaleVoiceHelper.configureMaleBaritoneVoice(_tts);
     } catch (_) {}
   }
 
@@ -224,19 +243,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         timestamp: DateTime.now(),
       ));
       _isThinking = true;
+      _workingAgentName = 'Executive Planner';
+      _workingAgentStatus = 'Decomposing task into specialist agent sub-goals...';
+      _activeThinkingSteps.clear();
+      _activeThinkingSteps.add(const ThoughtLineStep(
+        text: 'Executive Planner: Analyzing intent & tool dependencies',
+        isDone: false,
+        color: Color(0xFF00E5FF),
+      ));
     });
 
     _scrollToBottom();
 
-    // Check fast-path reflex dispatcher
+    // ── Instant Deterministic Reflex Path (<100ms) ──────────────────────────
     final reflex = await JackMasterDispatcher.tryReflexFastPath(query);
     if (reflex != null) {
       if (mounted) {
         setState(() {
           _isThinking = false;
+          _activeThinkingSteps.clear();
           _messages.add(_ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            text: reflex['result']?.toString() ?? 'Action executed.',
+            text: reflex['message']?.toString() ?? 'Action executed, Sir.',
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -246,37 +274,60 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
 
-    // App launch handling
-    final lower = query.toLowerCase();
-    if (lower.startsWith('open ') || lower.startsWith('launch ')) {
-      final appName = query.substring(lower.indexOf(' ') + 1).trim();
-      final launched = await AppLauncherHelper.launchAppByName(appName);
-      if (mounted) {
-        setState(() {
-          _isThinking = false;
-          _messages.add(_ChatMessage(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            text: launched ? 'Opening $appName...' : 'Could not find app $appName.',
-            isUser: false,
-            timestamp: DateTime.now(),
-          ));
-        });
-        _scrollToBottom();
-      }
-      return;
-    }
-
-    // Direct LLM reasoning
     try {
-      final response =
-          await ref.read(directGroqServiceProvider).generate(prompt: query);
+      final multiAgent = ref.read(multiAgentOrchestratorProvider);
+      final result = await multiAgent.executeMultiAgentGoal(
+        query: query,
+        onProgress: (agentName, status) {
+          if (mounted) {
+            setState(() {
+              _workingAgentName = agentName;
+              _workingAgentStatus = status;
+
+              // Mark earlier active steps as done
+              for (int i = 0; i < _activeThinkingSteps.length; i++) {
+                final s = _activeThinkingSteps[i];
+                if (!s.isDone) {
+                  _activeThinkingSteps[i] = ThoughtLineStep(
+                    text: s.text,
+                    isDone: true,
+                    color: s.color,
+                  );
+                }
+              }
+
+              Color agentColor = const Color(0xFF00E5FF);
+              if (agentName.contains('Research')) {
+                agentColor = const Color(0xFF2DD4BF);
+              } else if (agentName.contains('Device') || agentName.contains('DOM')) {
+                agentColor = const Color(0xFF38BDF8);
+              } else if (agentName.contains('Tool') || agentName.contains('MCP')) {
+                agentColor = const Color(0xFFFBBF24);
+              } else if (agentName.contains('Telephony')) {
+                agentColor = const Color(0xFFA855F7);
+              }
+
+              _activeThinkingSteps.add(ThoughtLineStep(
+                text: '$agentName: $status',
+                isDone: false,
+                color: agentColor,
+              ));
+            });
+          }
+        },
+      );
+
       if (mounted) {
         setState(() {
           _isThinking = false;
+          _activeThinkingSteps.clear();
           _messages.add(_ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            text: response,
+            text: result.text,
             isUser: false,
+            products: result.products,
+            steps: result.steps,
+            involvedAgents: result.involvedAgents,
             timestamp: DateTime.now(),
           ));
         });
@@ -286,9 +337,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (mounted) {
         setState(() {
           _isThinking = false;
+          _activeThinkingSteps.clear();
           _messages.add(_ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            text: 'I encountered an issue processing your request: $e',
+            text: 'I encountered an issue coordinating sub-agents: $e',
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -310,7 +362,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
-  void _showProductDetails(_ProductCardItem prod) {
+  void _showProductDetails(ProductCardItem prod) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
@@ -448,13 +500,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Opening deal link for ${prod.title}...'),
-                          backgroundColor: AppColors.surfaceElevated,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      final url = prod.purchaseUrl ??
+                          'https://www.google.com/search?q=${Uri.encodeComponent(prod.title)}';
+                      AppLauncherHelper.openUrl(url);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF38BDF8),
@@ -566,101 +614,123 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
             ),
 
-            // ── Thinking Indicator ────────────────────────────────────────
+            // ── React Bits LatticeLoader & ThoughtLine for Multi-Agent AI Thinking ─
             if (_isThinking)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-                child: Row(
+                padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const JackOrb(size: 20, state: OrbState.thinking),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Jack is thinking...',
-                      style: GoogleFonts.inter(
-                        color: AppColors.accentCyan,
-                        fontSize: 12,
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141320),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF00E5FF).withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF00E5FF).withValues(alpha: 0.10),
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
+                      child: Row(
+                        children: [
+                          LatticeLoader(
+                            status: LatticeStatus.working,
+                            label: _workingAgentName,
+                            pattern: 'orbit',
+                            grid: 3,
+                            shape: LatticeShape.round,
+                            color: const Color(0xFF00E5FF),
+                            glow: true,
+                            glowColor: const Color(0xFF00E5FF),
+                            cellSize: 5.5,
+                            gap: 2.0,
+                            fontSize: 12,
+                            showTimer: true,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '• $_workingAgentStatus',
+                              style: GoogleFonts.inter(
+                                color: Colors.white54,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ThoughtLine(
+                      label: '$_workingAgentName: $_workingAgentStatus',
+                      glyph: 'sparkle',
+                      glyphColor: const Color(0xFF00E5FF),
+                      working: true,
+                      showTimer: true,
+                      steps: _activeThinkingSteps,
+                      collapsible: true,
                     ),
                   ],
                 ),
               ),
 
-            // ── Bottom Input Bar: Search icon + "Ask a follow-up..." + White Mic button
+            // ── React Bits PromptBar with @ Sources, / Commands, Model Picker, Effort Slider & VoicePill
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-              child: Container(
-                height: 58,
-                padding: const EdgeInsets.only(left: 16, right: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF141320),
-                  borderRadius: BorderRadius.circular(29),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.search_rounded,
-                      color: Colors.white38,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _textController,
-                        focusNode: _focusNode,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 14.5,
-                        ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (val) => _sendMessage(val),
-                        decoration: InputDecoration(
-                          hintText: _isListening
-                              ? 'Listening...'
-                              : 'Ask a follow-up...',
-                          hintStyle: GoogleFonts.inter(
-                            color: _isListening
-                                ? AppColors.accentPink
-                                : Colors.white38,
-                            fontSize: 14.5,
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                        cursorColor: AppColors.accentCyan,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _toggleListening,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _isListening
-                              ? AppColors.accentPink
-                              : Colors.white,
-                        ),
-                        child: Icon(
-                          _isListening
-                              ? Icons.graphic_eq_rounded
-                              : Icons.mic_rounded,
-                          color: _isListening ? Colors.white : Colors.black,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 10.0),
+              child: PromptBar(
+                controller: _textController,
+                focusNode: _focusNode,
+                placeholder: 'Ask Jack anything...',
+                busy: _isThinking,
+                onSend: (text, {attachments, model, effort}) {
+                  _sendMessage(text);
+                },
+                onStop: () {
+                  setState(() => _isThinking = false);
+                },
+                onDictate: () async {
+                  await _toggleListening();
+                  return null;
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMultiAgentTrace(_ChatMessage msg) {
+    if (msg.steps == null || msg.steps!.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: ThoughtLine(
+        label: '${msg.steps!.length} Sub-Agents Collaborated',
+        doneLabel: '${msg.steps!.length} Sub-Agents Executed',
+        glyph: 'sparkle',
+        glyphColor: const Color(0xFF00E5FF),
+        working: false,
+        showTimer: false,
+        collapsible: true,
+        collapseOnSettle: true,
+        steps: msg.steps!.map((step) {
+          return ThoughtLineStep(
+            text: '${step.agentName} • ${step.detail}',
+            isDone: true,
+            color: step.badgeColor,
+          );
+        }).toList(),
       ),
     );
   }
@@ -722,13 +792,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         width: 1,
                       ),
                     ),
-                    child: Text(
-                      msg.text,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 13.5,
-                        height: 1.45,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildMultiAgentTrace(msg),
+                        _buildRichMessageContent(context, msg.text),
+                      ],
                     ),
                   ),
                 ),
@@ -827,6 +896,221 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRichMessageContent(BuildContext context, String text) {
+    final imageRegex = RegExp(r'!\[(.*?)\]\((.*?)\)');
+
+    // Clean broken lone asterisks caused by linebreaks
+    final cleanedText = text
+        .replaceAll(RegExp(r'\n\s*\*\*\s*\n'), '\n')
+        .replaceAll(RegExp(r'^\s*\*\*\s*$', multiLine: true), '');
+
+    final lines = cleanedText.split('\n');
+    final List<Widget> blocks = [];
+    final maxBtnWidth = MediaQuery.of(context).size.width * 0.72;
+
+    for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.isEmpty) {
+        blocks.add(const SizedBox(height: 5));
+        continue;
+      }
+
+      // 1. Check for inline markdown image
+      final imgMatch = imageRegex.firstMatch(line);
+      if (imgMatch != null) {
+        final imgUrl = imgMatch.group(2) ?? '';
+        final altText = imgMatch.group(1) ?? '';
+        if (imgUrl.isNotEmpty) {
+          blocks.add(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imgUrl,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, error, stack) => Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.image_outlined,
+                            color: Colors.white38, size: 18),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            altText.isNotEmpty ? altText : 'Preview Image',
+                            style: GoogleFonts.inter(
+                                color: Colors.white54, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          continue;
+        }
+      }
+
+      // 2. Check for Heading
+      if (line.startsWith('### ') || line.startsWith('## ') || line.startsWith('# ')) {
+        final headingText = line.replaceFirst(RegExp(r'^#+\s*'), '');
+        blocks.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 6.0, bottom: 4.0),
+            child: Text(
+              headingText,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF00E5FF),
+                fontSize: 14.5,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // 3. Standalone link line (render as a constrained tappable action chip)
+      final standaloneLinkMatch = RegExp(r'^\[(.*?)\]\((https?://[^\s\)]+)\)$').firstMatch(line);
+      if (standaloneLinkMatch != null) {
+        final label = standaloneLinkMatch.group(1) ?? 'Open Link';
+        final url = standaloneLinkMatch.group(2) ?? '';
+        blocks.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3.0),
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                AppLauncherHelper.openUrl(url);
+              },
+              child: Container(
+                constraints: BoxConstraints(maxWidth: maxBtnWidth),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.open_in_new_rounded,
+                        color: Color(0xFF00E5FF), size: 13),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF00E5FF),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // 4. Line with inline links or markdown formatting (Bold & TextSpans that wrap safely)
+      final spans = <InlineSpan>[];
+      int lastIndex = 0;
+
+      // Match markdown links [label](url) or bold **bold text**
+      final tokenRegex = RegExp(r'(\[(.*?)\]\((https?://[^\s\)]+)\)|\*\*(.*?)\*\*)');
+      final matches = tokenRegex.allMatches(line);
+
+      for (final m in matches) {
+        if (m.start > lastIndex) {
+          spans.add(TextSpan(
+            text: line.substring(lastIndex, m.start),
+            style: GoogleFonts.inter(
+                color: Colors.white, fontSize: 13.5, height: 1.45),
+          ));
+        }
+
+        if (m.group(1)?.startsWith('[') == true) {
+          // Markdown link
+          final label = m.group(2) ?? 'Link';
+          final url = m.group(3) ?? '';
+          spans.add(TextSpan(
+            text: label,
+            style: GoogleFonts.inter(
+              color: const Color(0xFF00E5FF),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.underline,
+              decorationColor: const Color(0xFF00E5FF),
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                HapticFeedback.lightImpact();
+                AppLauncherHelper.openUrl(url);
+              },
+          ));
+        } else if (m.group(4) != null) {
+          // Bold text
+          final boldText = m.group(4)!;
+          spans.add(TextSpan(
+            text: boldText,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 13.5,
+              fontWeight: FontWeight.bold,
+              height: 1.45,
+            ),
+          ));
+        }
+
+        lastIndex = m.end;
+      }
+
+      if (lastIndex < line.length) {
+        spans.add(TextSpan(
+          text: line.substring(lastIndex),
+          style: GoogleFonts.inter(
+              color: Colors.white, fontSize: 13.5, height: 1.45),
+        ));
+      }
+
+      blocks.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3.0),
+          child: Text.rich(
+            TextSpan(children: spans),
+            softWrap: true,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: blocks,
     );
   }
 }

@@ -117,6 +117,9 @@ class JackController {
     }
   }
 
+  /// Locks the device screen via Accessibility Global Action.
+  static Future<bool> lockScreen() => triggerGlobal('LOCK_SCREEN');
+
   // ── Action: Hardware ───────────────────────────────────────────────────────
 
   /// Toggles the device flashlight / torch.

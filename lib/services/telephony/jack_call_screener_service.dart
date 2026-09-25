@@ -6,7 +6,6 @@
 // with Groq LLM, takes notes, logs a persistent task, and fires real notifications.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +18,11 @@ import '../../widgets/jack_orb.dart';
 import '../api/direct_groq_service.dart';
 import '../notifications/jack_notification_service.dart';
 import '../tasks/jack_task_service.dart';
+import '../voice/jack_male_voice_helper.dart';
+import '../../providers/call_log_provider.dart';
+import '../../models/call_log_model.dart';
+import '../security/jack_security_shield_service.dart';
+import '../personality/jack_personality_service.dart';
 
 enum CallScreeningPhase {
   incoming,
@@ -45,6 +49,8 @@ class JackCallScreenerService {
   JackCallScreenerService._();
 
   static final JackCallScreenerService instance = JackCallScreenerService._();
+  static GlobalKey<NavigatorState>? navigatorKey;
+  static WidgetRef? globalRef;
 
   final FlutterTts _tts = FlutterTts();
   final stt.SpeechToText _stt = stt.SpeechToText();
@@ -52,11 +58,43 @@ class JackCallScreenerService {
   bool _ttsInitialized = false;
   bool _sttInitialized = false;
 
+  /// Trigger incoming call screening modal globally from any service or dispatcher
+  static void triggerGlobally({
+    String callerName = 'Sarah Jenkins',
+    String phoneNumber = '+1 (415) 892-0199',
+    String? scenarioPrompt,
+  }) {
+    final ctx = navigatorKey?.currentContext;
+    if (ctx != null && globalRef != null) {
+      instance.triggerIncomingCall(
+        ctx,
+        globalRef!,
+        callerName: callerName,
+        phoneNumber: phoneNumber,
+        scenarioPrompt: scenarioPrompt,
+      );
+    }
+  }
+
   Future<void> _initAudio() async {
     if (!_ttsInitialized) {
       try {
         await _tts.setLanguage('en-GB');
-        await _tts.setPitch(0.90);
+        
+        // Find a male voice
+        final voices = await _tts.getVoices;
+        if (voices != null) {
+          for (var voice in voices) {
+            final name = voice['name'].toString().toLowerCase();
+            final locale = voice['locale'].toString();
+            if (locale.contains('en-GB') && (name.contains('male') || name.contains('network'))) {
+              await _tts.setVoice({"name": voice['name'], "locale": voice['locale']});
+              break;
+            }
+          }
+        }
+        
+        await _tts.setPitch(0.85);
         await _tts.setSpeechRate(0.48);
         await _tts.setVolume(1.0);
         _ttsInitialized = true;
@@ -128,6 +166,7 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
   Timer? _callDurationTimer;
   int _callSeconds = 0;
   String _livePartialSpeech = '';
+  Completer<String>? _turnCompleter;
 
   late AnimationController _ringPulseCtrl;
   late Animation<double> _ringPulseAnim;
@@ -146,6 +185,13 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
 
     // Initial haptic ring cadence
     _simulateRinging();
+    _initModalAudio();
+  }
+
+  Future<void> _initModalAudio() async {
+    try {
+      await JackMaleVoiceHelper.configureMaleBaritoneVoice(_tts);
+    } catch (_) {}
   }
 
   void _simulateRinging() async {
@@ -193,11 +239,17 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
     });
     _scrollToBottom();
 
+    // 1. Send speech to Android telephony in-call audio stream (USAGE_VOICE_COMMUNICATION)
     try {
-      await _tts.setLanguage('en-GB');
-      await _tts.setPitch(0.90); // Deep male baritone
-      await _tts.setSpeechRate(0.48); // Measured British JARVIS cadence
-      await _tts.setVolume(1.0);
+      const MethodChannel('com.jack.agent/call_talk')
+          .invokeMethod('speak', {'text': text, 'lang': 'en'});
+    } catch (_) {}
+
+    // 2. Play speech locally on speaker with active personality voice
+    try {
+      final personality = widget.ref.read(jackPersonalityProvider).activeProfile;
+      await _tts.setPitch(personality.voicePitch);
+      await _tts.setSpeechRate(personality.voiceRate);
       await _tts.speak(text);
       await Future.delayed(
         Duration(milliseconds: (text.split(' ').length * 360).clamp(1800, 7000)),
@@ -230,97 +282,140 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
     });
     _startDurationTimer();
 
-    // 1. Jack greets the caller out loud
+    // Enable speakerphone so incoming and outgoing voice are crystal clear
+    try {
+      const MethodChannel('com.jack.agent/accessibility')
+          .invokeMethod('setSpeakerphone', {'enable': true});
+    } catch (_) {}
+
+    // 1. Jack greets the caller out loud over the call line
     await Future.delayed(const Duration(milliseconds: 600));
     final greeting =
-        "Hello! I am Jack, Easin's AI assistant. Easin is unavailable right now. Who is calling, and how may I assist you?";
+        "Hello! I am Jack, the AI assistant. I am taking this call. Who is calling, and how may I assist you?";
     await _speakJack(greeting);
 
     if (!mounted) return;
 
-    // 2. Jack listens to the caller
-    setState(() {
-      _phase = CallScreeningPhase.callerSpeaking;
-      _livePartialSpeech = 'Listening to caller...';
-    });
-
+    // 2. Real-time dynamic conversation loop with the live caller
     String callerMessage = '';
+    String jackResponse = '';
 
-    // Check if a scenario is provided or listen live
-    if (widget.scenarioPrompt != null && widget.scenarioPrompt!.isNotEmpty) {
-      // Scenario playback
-      await Future.delayed(const Duration(milliseconds: 1600));
-      callerMessage = widget.scenarioPrompt!;
-    } else {
-      // Try STT or default to real caller audio response
+    for (int turn = 0; turn < 2; turn++) {
+      if (!mounted || _phase == CallScreeningPhase.completed) break;
+
+      setState(() {
+        _phase = CallScreeningPhase.callerSpeaking;
+        _livePartialSpeech = 'Listening to caller...';
+      });
+
+      String currentTurnMessage = '';
+      _turnCompleter = Completer<String>();
+
+      // Live STT capture from the caller
       try {
         final hasSpeech = await _stt.initialize();
         if (hasSpeech) {
-          _stt.listen(
+          await _stt.listen(
             onResult: (r) {
               if (mounted) {
                 setState(() => _livePartialSpeech = r.recognizedWords);
               }
+              if (r.finalResult && r.recognizedWords.trim().isNotEmpty) {
+                if (_turnCompleter != null && !_turnCompleter!.isCompleted) {
+                  _turnCompleter!.complete(r.recognizedWords.trim());
+                }
+              }
             },
           );
-          await Future.delayed(const Duration(seconds: 4));
+
+          currentTurnMessage = await _turnCompleter!.future.timeout(
+            const Duration(seconds: 8),
+            onTimeout: () => _livePartialSpeech != 'Listening to caller...' ? _livePartialSpeech : '',
+          );
           await _stt.stop();
-          if (_livePartialSpeech.isNotEmpty &&
-              _livePartialSpeech != 'Listening to caller...') {
-            callerMessage = _livePartialSpeech;
-          }
         }
       } catch (_) {}
 
-      if (callerMessage.isEmpty) {
-        callerMessage =
-            "Hi, this is ${widget.callerName}. I'm calling about the project demo scheduled for this afternoon. Please ask Easin to call me back at ${widget.phoneNumber}.";
+      // If caller spoke, analyze security first, then reason with Groq LLM
+      if (currentTurnMessage.trim().isNotEmpty) {
+        callerMessage = currentTurnMessage.trim();
+        if (!mounted) return;
+        setState(() {
+          _livePartialSpeech = '';
+          _transcript.add(CallTranscriptTurn(
+            speaker: widget.callerName != 'Unknown' ? widget.callerName : 'Caller',
+            message: callerMessage,
+            timestamp: DateTime.now(),
+          ));
+        });
+        _scrollToBottom();
+
+        // 🛡️ Real Autonomous Security Shield Detection (OTP, IRS/Police Scam, Bank Fraud)
+        final securityNotifier = widget.ref.read(jackSecurityProvider.notifier);
+        final assessment = securityNotifier.analyzeCallTranscript(
+          callerMessage,
+          widget.phoneNumber,
+        );
+
+        if (assessment.isScam) {
+          setState(() {
+            _phase = CallScreeningPhase.reasoning;
+            _transcript.add(CallTranscriptTurn(
+              speaker: 'Jack Security Shield',
+              message: '🚨 THREAT DEFLECTED: Scam Call Blocked (Score: ${assessment.threatScore}%)\nPatterns: ${assessment.detectedPatterns.join(', ')}',
+              timestamp: DateTime.now(),
+            ));
+          });
+          _scrollToBottom();
+
+          jackResponse = assessment.deflectionScript;
+          await _speakJack(jackResponse);
+          break; // Stop and terminate call immediately
+        }
+
+        // Reason dynamically using Groq LLM with personality system prompt
+        setState(() => _phase = CallScreeningPhase.reasoning);
+        try {
+          final groq = widget.ref.read(directGroqServiceProvider);
+          final activePersonality = widget.ref.read(jackPersonalityProvider).activeProfile;
+          final prompt =
+              "${activePersonality.systemPrompt}\n"
+              "You are on a live phone call with ${widget.callerName}. "
+              "The caller just said: '$callerMessage'. "
+              "Respond directly to the caller in 1-2 natural sentences according to your personality, confirming you noted it.";
+          jackResponse = await groq.generate(prompt: prompt);
+          jackResponse = jackResponse.replaceAll(RegExp(r'<think>.*?</think>', dotAll: true), '').trim();
+        } catch (_) {
+          final activePersonality = widget.ref.read(jackPersonalityProvider).activeProfile;
+          jackResponse = "${activePersonality.confirmPhrase} I have recorded your message and notified the team.";
+        }
+
+        if (jackResponse.isEmpty) {
+          final activePersonality = widget.ref.read(jackPersonalityProvider).activeProfile;
+          jackResponse = "${activePersonality.confirmPhrase} I have carefully noted your message and will pass it along immediately.";
+        }
+
+        // Speak response back to caller
+        await _speakJack(jackResponse);
+
+
+      } else {
+        // If no speech detected on this turn
+        if (turn == 0) {
+          await _speakJack("I'm still here. Could you please repeat your name and message?");
+        } else {
+          await _speakJack("I am not hearing any response, so I will conclude this call. Goodbye!");
+          break;
+        }
       }
     }
 
     if (!mounted) return;
 
-    setState(() {
-      _livePartialSpeech = '';
-      _transcript.add(CallTranscriptTurn(
-        speaker: widget.callerName,
-        message: callerMessage,
-        timestamp: DateTime.now(),
-      ));
-    });
-    _scrollToBottom();
-
-    // 3. Jack reasons with Groq LLM on what to tell the caller
-    setState(() => _phase = CallScreeningPhase.reasoning);
-
-    String jackResponse = '';
-    try {
-      final groq = widget.ref.read(directGroqServiceProvider);
-      final prompt =
-          "You are Jack, a professional AI executive assistant for Easin. "
-          "The caller '${widget.callerName}' just said: '$callerMessage'. "
-          "Respond directly to the caller in 1-2 natural sentences, acknowledging their request, "
-          "confirming you took a complete note for Easin, and stating Easin will get the message immediately.";
-      jackResponse = await groq.generate(prompt: prompt);
-      jackResponse = jackResponse.replaceAll(RegExp(r'<think>.*?</think>', dotAll: true), '').trim();
-    } catch (_) {
-      jackResponse =
-          "Got it, ${widget.callerName}! I've recorded your message regarding the demo and notified Easin right away. Is there anything else you need?";
+    // Wrap up call politely
+    if (_phase != CallScreeningPhase.completed) {
+      await _speakJack("Have a great day. Goodbye!");
     }
-
-    if (jackResponse.isEmpty) {
-      jackResponse =
-          "Thank you, ${widget.callerName}. I have carefully noted your message and Easin will receive the transcript immediately.";
-    }
-
-    // 4. Jack speaks the response to the caller
-    await _speakJack(jackResponse);
-
-    if (!mounted) return;
-
-    // 5. Wrap up call politely
-    final closing = "Have a great day. Goodbye!";
-    await _speakJack(closing);
 
     if (!mounted) return;
 
@@ -346,6 +441,26 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
       resultSummary: summary,
       category: 'Telephony',
     ));
+
+    // Record in CallLogProvider
+    try {
+      widget.ref.read(callLogProvider.notifier).addEntry(CallLogEntry(
+        id: 'call_${DateTime.now().millisecondsSinceEpoch}',
+        contactName: widget.callerName,
+        phoneNumber: widget.phoneNumber,
+        type: CallLogType.incoming,
+        startTime: DateTime.now().subtract(Duration(seconds: _callSeconds)),
+        duration: Duration(seconds: _callSeconds),
+        aiSummary: callerMessage.isNotEmpty
+            ? 'Caller: "$callerMessage"\nJack: "$jackResponse"'
+            : 'Call screened autonomously by Jack AI.',
+        jackActions: [
+          'Screened call autonomously via British Male AI voice',
+          if (callerMessage.isNotEmpty) 'Captured caller message & intent',
+          'Logged to persistent system tasks',
+        ],
+      ));
+    } catch (_) {}
 
     // Show persistent Heads-up Notification
     if (mounted) {
@@ -813,7 +928,67 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
                 },
               ),
             ),
+            if (_phase == CallScreeningPhase.callerSpeaking)
+              _buildQuickScenarioChips(),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickScenarioChips() {
+    final suggestions = [
+      "I'm calling about the project update.",
+      "🚨 Officer Davis: Give me your OTP immediately or your account is frozen!",
+      "Can Easin call me back when free?",
+      "Package delivery at your front gate.",
+      "Just confirming our 3 PM meeting.",
+    ];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF100E20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.mic_rounded, color: AppColors.accentPink, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                'SPEAK INTO MIC OR TAP TEST SCENARIO:',
+                style: GoogleFonts.inter(
+                  color: AppColors.accentPink,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: suggestions.map((s) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ActionChip(
+                  backgroundColor: const Color(0xFF1E1A38),
+                  side: BorderSide(color: AppColors.accentCyan.withValues(alpha: 0.4)),
+                  label: Text(
+                    s,
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 11.5),
+                  ),
+                  onPressed: () {
+                    if (_turnCompleter != null && !_turnCompleter!.isCompleted) {
+                      setState(() => _livePartialSpeech = s);
+                      _turnCompleter!.complete(s);
+                    }
+                  },
+                ),
+              )).toList(),
+            ),
+          ),
         ],
       ),
     );

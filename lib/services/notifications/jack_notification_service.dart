@@ -74,7 +74,7 @@ class JackNotificationService {
                 const BoxShadow(
                   color: Colors.black54,
                   blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  offset: Offset(0, 6),
                 ),
               ],
             ),

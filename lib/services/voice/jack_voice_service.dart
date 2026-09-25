@@ -13,6 +13,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
+import 'jack_male_voice_helper.dart';
+
 class JackVoiceState {
   final bool isListening;
   final bool isSpeaking;
@@ -69,7 +71,7 @@ class JackVoiceNotifier extends StateNotifier<JackVoiceState> {
 
   static const String jarvisSystemPrompt =
       "You are Jack, a sophisticated British AI personal assistant modeled after JARVIS. "
-      "You serve your principal Easin (addressed respectfully as 'Sir' or 'Mr. Easin'). "
+      "You serve your principal Jaswanth (addressed respectfully as 'Sir' or 'Mr. Jaswanth'). "
       "Your tone is cultured, razor-sharp, calm, and exquisitely articulate. "
       "Deliver answers concisely (1-2 sentences for verbal answers) without preamble or fluff.";
 
@@ -98,55 +100,8 @@ class JackVoiceNotifier extends StateNotifier<JackVoiceState> {
   /// Sets up British English (en-GB) male JARVIS voice profile
   Future<void> _setupTtsJarvisVoice() async {
     try {
-      await _tts.setLanguage('en-GB');
-
-      // Male baritone JARVIS tuning:
-      // Pitch: 0.88 - 0.92 gives that distinguished deep British resonance
-      // Speech Rate: 0.48 provides calm, measured, articulate pacing
-      await _tts.setPitch(0.90);
-      await _tts.setSpeechRate(0.48);
-      await _tts.setVolume(1.0);
-
-      // Search available system voices for male British / UK voice
-      final List<dynamic>? voices = await _tts.getVoices;
-      if (voices != null && voices.isNotEmpty) {
-        Map<dynamic, dynamic>? chosenVoice;
-
-        for (final v in voices) {
-          if (v is Map) {
-            final name = (v['name'] ?? '').toString().toLowerCase();
-            final locale = (v['locale'] ?? '').toString().toLowerCase();
-
-            // Match British male candidates: e.g. en-gb-x-rjs-local, en-gb-x-gbc-local, en_GB male
-            if ((locale.contains('en-gb') || locale.contains('en_gb') || locale.contains('gbr')) &&
-                (name.contains('male') || name.contains('rjs') || name.contains('gbb') || name.contains('george') || name.contains('oliver'))) {
-              chosenVoice = v;
-              break;
-            }
-          }
-        }
-
-        // Fallback to any en-GB voice if specific male tag not found
-        if (chosenVoice == null) {
-          for (final v in voices) {
-            if (v is Map) {
-              final locale = (v['locale'] ?? '').toString().toLowerCase();
-              if (locale.contains('en-gb') || locale.contains('en_gb')) {
-                chosenVoice = v;
-                break;
-              }
-            }
-          }
-        }
-
-        if (chosenVoice != null) {
-          await _tts.setVoice({
-            'name': chosenVoice['name'].toString(),
-            'locale': chosenVoice['locale'].toString(),
-          });
-          state = state.copyWith(voiceName: 'JARVIS (${chosenVoice['name']})');
-        }
-      }
+      await JackMaleVoiceHelper.configureMaleBaritoneVoice(_tts);
+      state = state.copyWith(voiceName: 'JARVIS (British Male Baritone)');
 
       _tts.setStartHandler(() {
         state = state.copyWith(isSpeaking: true);
@@ -226,9 +181,11 @@ class JackVoiceNotifier extends StateNotifier<JackVoiceState> {
           state = state.copyWith(activeTranscript: result.recognizedWords);
           onResult(result.recognizedWords, result.finalResult);
         },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
-        localeId: 'en_GB', // British locale for recognition alignment
+        listenOptions: stt.SpeechListenOptions(
+          listenFor: const Duration(seconds: 30),
+          pauseFor: const Duration(seconds: 3),
+          localeId: 'en_GB', // British locale for recognition alignment
+        ),
       );
     } catch (_) {
       state = state.copyWith(isListening: false);

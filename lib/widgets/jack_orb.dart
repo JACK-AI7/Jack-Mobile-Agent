@@ -11,18 +11,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
-enum OrbState { idle, thinking, working, success, error, listening }
+enum OrbState { idle, thinking, working, success, error, listening, speaking }
 
 class JackOrb extends StatefulWidget {
   final OrbState state;
   final double size;
   final VoidCallback? onTap;
+  final bool enable3dTouch;
 
   const JackOrb({
     super.key,
     this.state = OrbState.idle,
     this.size = 120,
     this.onTap,
+    this.enable3dTouch = true,
   });
 
   @override
@@ -203,19 +205,23 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
         HapticFeedback.mediumImpact();
         widget.onTap?.call();
       },
-      onPanStart: _onPanStart,
-      onPanUpdate: _onPanUpdate,
-      onPanEnd: _onPanEnd,
+      onPanStart: widget.enable3dTouch ? _onPanStart : null,
+      onPanUpdate: widget.enable3dTouch ? _onPanUpdate : null,
+      onPanEnd: widget.enable3dTouch ? _onPanEnd : null,
       behavior: HitTestBehavior.opaque,
       child: AnimatedBuilder(
         animation: Listenable.merge([_breatheCtrl, _rotateCtrl, _pulseCtrl, _springCtrl]),
         builder: (context, child) {
-          final scale = _breatheAnim.value;
+          // Orb circle stays rock-solid when idle; 3D perspective only applies during active interaction
+          final scale = widget.state == OrbState.idle ? 1.0 : _breatheAnim.value;
 
-          final transform = Matrix4.identity()
-            ..setEntry(3, 2, 0.0018) // 3D Perspective projection
-            ..rotateX(_pitch)
-            ..rotateY(_yaw);
+          final transform = Matrix4.identity();
+          if (widget.enable3dTouch && (_pitch != 0.0 || _yaw != 0.0)) {
+            transform
+              ..setEntry(3, 2, 0.0018) // 3D Perspective projection
+              ..rotateX(_pitch)
+              ..rotateY(_yaw);
+          }
 
           return Transform.scale(
             scale: scale,
@@ -320,6 +326,7 @@ class _JackOrbPainter extends CustomPainter {
         canvas.drawCircle(center, radius * 0.85, glow);
         break;
 
+      case OrbState.speaking:
       case OrbState.listening:
       case OrbState.idle:
         // Left Ambient Pink Bloom
@@ -356,7 +363,7 @@ class _JackOrbPainter extends CustomPainter {
   }
 
   void _paintSphereBody(Canvas canvas, Rect sphereRect, Offset center, double radius) {
-    if (state == OrbState.idle || state == OrbState.listening) {
+    if (state == OrbState.idle || state == OrbState.listening || state == OrbState.speaking) {
       // ── Idle/Listening: Reference Image Exact Luminous Palette ───────────
 
       // Layer 1: Base Linear Celestial Flow with tilt offset

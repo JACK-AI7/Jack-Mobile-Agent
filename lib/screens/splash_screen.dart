@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../widgets/jack_orb.dart';
+import '../services/jack_permission_service.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -82,7 +83,19 @@ class SplashScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 58,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/home'),
+                  onPressed: () async {
+                    final status = await JackPermissionService.checkAll();
+                    if (!status.allGranted && context.mounted) {
+                      JackPermissionService.showPermissionSheet(
+                        context,
+                        onComplete: () {
+                          if (context.mounted) context.go('/home');
+                        },
+                      );
+                    } else if (context.mounted) {
+                      context.go('/home');
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,

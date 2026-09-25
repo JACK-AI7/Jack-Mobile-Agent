@@ -92,6 +92,17 @@ class MoreScreen extends StatelessWidget {
                   children: [
                     _buildMoreItem(
                       context,
+                      icon: Icons.phone_callback_rounded,
+                      title: 'AI Call Screener & Telecom',
+                      subtitle: 'Autonomous call handling & transcripts',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/calls');
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMoreItem(
+                      context,
                       icon: Icons.help_outline_rounded,
                       title: 'Help & Support',
                       subtitle: 'Get help or contact us',
@@ -158,7 +169,7 @@ class MoreScreen extends StatelessWidget {
       bottomNavigationBar: GlassNavBar(
         currentIndex: 4, // Profile slot repurposed as "More" when isMoreActive
         isMoreActive: true,
-        exploreLabel: 'Tools',
+        exploreLabel: 'Plugins',
         onTap: (index) {
           HapticFeedback.lightImpact();
           switch (index) {

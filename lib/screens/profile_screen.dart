@@ -16,6 +16,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/jack_auth_state.dart';
 import '../services/jack_permission_service.dart';
 import '../services/api/direct_groq_service.dart';
+import '../services/personality/jack_personality_service.dart';
+import '../router/app_router.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../providers/tasks_provider.dart';
 import '../providers/automations_provider.dart';
 import '../theme/app_colors.dart';
@@ -107,14 +110,211 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _showPersonalityModal(BuildContext context, WidgetRef ref) {
+    final tts = FlutterTts();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F0E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final current = ref.watch(jackPersonalityProvider);
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: current.activeProfile.accentColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: current.activeProfile.accentColor.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Icon(current.activeProfile.icon, color: current.activeProfile.accentColor, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Jack AI Personality Engine',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Dynamically tunes voice pitch, tone, greetings & system reasoning',
+                              style: GoogleFonts.inter(
+                                color: Colors.white60,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: JackPersonalityNotifier.presets.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final profile = JackPersonalityNotifier.presets[index];
+                        final isSelected = current.activeProfile.id == profile.id;
+
+                        return GestureDetector(
+                          onTap: () async {
+                            HapticFeedback.mediumImpact();
+                            await ref.read(jackPersonalityProvider.notifier).setPersonality(profile.id);
+                            setSheetState(() {});
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? profile.accentColor.withValues(alpha: 0.15)
+                                  : const Color(0xFF17152B),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected
+                                    ? profile.accentColor
+                                    : Colors.white12,
+                                width: isSelected ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(profile.icon, color: profile.accentColor, size: 20),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      profile.name,
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (isSelected)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: profile.accentColor,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          'ACTIVE',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  profile.title,
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black26,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.format_quote_rounded, color: Colors.white38, size: 16),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '"${profile.wakeGreeting}"',
+                                          style: GoogleFonts.inter(
+                                            color: profile.accentColor,
+                                            fontSize: 11.5,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        icon: const Icon(Icons.volume_up_rounded, color: Colors.white70, size: 18),
+                                        onPressed: () async {
+                                          try {
+                                            await tts.setPitch(profile.voicePitch);
+                                            await tts.setSpeechRate(profile.voiceRate);
+                                            await tts.speak(profile.wakeGreeting);
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userNameAsync = ref.watch(userNameProvider);
     final displayName = userNameAsync.when(
       data: (name) =>
-          (name != null && name.trim().isNotEmpty) ? name.trim() : 'Easin',
-      loading: () => 'Easin',
-      error: (err, stack) => 'Easin',
+          (name != null && name.trim().isNotEmpty) ? name.trim() : 'Jaswanth',
+      loading: () => 'Jaswanth',
+      error: (err, stack) => 'Jaswanth',
     );
 
     final tasksAsync = ref.watch(tasksProvider);
@@ -216,7 +416,7 @@ class ProfileScreen extends ConsumerWidget {
                           'Tasks Done',
                           completedTaskCount != null
                               ? '$completedTaskCount'
-                              : '5',
+                              : '0',
                           AppColors.accentCyan,
                         ),
                       ),
@@ -226,7 +426,7 @@ class ProfileScreen extends ConsumerWidget {
                           'Active',
                           activeAutomationCount != null
                               ? '$activeAutomationCount'
-                              : '2',
+                              : '0',
                           const Color(0xFF8B5CF6),
                         ),
                       ),
@@ -234,7 +434,7 @@ class ProfileScreen extends ConsumerWidget {
                       Expanded(
                         child: _buildStatCard(
                           'Agents',
-                          automationCount != null ? '$automationCount' : '3',
+                          automationCount != null ? '$automationCount' : '0',
                           const Color(0xFF00FF88),
                         ),
                       ),
@@ -282,22 +482,33 @@ class ProfileScreen extends ConsumerWidget {
                     _buildMenuItem(
                       context: context,
                       icon: Icons.palette_outlined,
-                      title: 'Appearance',
-                      subtitle: 'Theme, language, voice',
+                      title: 'Personality & Voice',
+                      subtitle: 'Jarvis, Executive, Cyberpunk...',
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        _showApiKeyDialog(context);
+                        _showPersonalityModal(context, ref);
                       },
                     ),
                     _buildDivider(),
                     _buildMenuItem(
                       context: context,
                       icon: Icons.shield_outlined,
-                      title: 'Security',
-                      subtitle: 'Privacy & data controls',
+                      title: 'Security Shield',
+                      subtitle: 'Scam, phishing & hack defense',
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        JackPermissionService.showPermissionSheet(context);
+                        context.push(AppRoutes.security);
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      context: context,
+                      icon: Icons.auto_awesome_rounded,
+                      title: 'AI Model & Reasoning',
+                      subtitle: 'Groq API Key (Llama 3.3 70B)',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _showApiKeyDialog(context);
                       },
                     ),
                   ]),

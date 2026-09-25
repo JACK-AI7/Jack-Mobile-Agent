@@ -6,7 +6,7 @@ import 'app_launcher_helper.dart';
 /// Handles executing physical Android capabilities and interacting with the DOM.
 /// The backend Agent Planner issues these commands to the Flutter app.
 class JackCapabilitiesService {
-  static const _platform = MethodChannel('com.syncra.syncra/accessibility');
+  static const _platform = MethodChannel('com.jack.agent/accessibility');
 
   static Future<void> clickText(String text) async {
     await _platform.invokeMethod('clickText', {'text': text}).catchError((_) {});

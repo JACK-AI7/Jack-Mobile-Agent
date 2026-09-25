@@ -18,66 +18,7 @@ import '../services/tasks/jack_task_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
 
-/// Seed data matching the reference image exactly — displayed while the
-/// backend is loading or when it returns an empty list.
-const _seedTasks = [
-  _SeedTask(
-    title: 'Laptop research',
-    status: 'IN_PROGRESS',
-    minutesAgo: 2,
-    result: 'Found top AI/ML laptops under \$1000: Lenovo LOQ 15 (\$799), ASUS TUF A15 (\$899). Both with RTX 4060 and 16GB DDR5.',
-  ),
-  _SeedTask(
-    title: 'Summarize article',
-    status: 'COMPLETED',
-    minutesAgo: 60,
-    result: 'Article summarized into 5 key bullet points about autonomous AI agents and the future of task automation.',
-  ),
-  _SeedTask(
-    title: 'Create presentation',
-    status: 'COMPLETED',
-    minutesAgo: 180,
-    result: '12-slide presentation created: Executive summary, market analysis, roadmap, and competitive landscape.',
-  ),
-  _SeedTask(
-    title: 'Analyze dataset',
-    status: 'COMPLETED',
-    minutesAgo: 300,
-    result: 'Dataset analysis complete: 3 outlier clusters detected, trend shows 23% MoM growth, regression model R²=0.94.',
-  ),
-  _SeedTask(
-    title: 'Plan vacation',
-    status: 'COMPLETED',
-    minutesAgo: 1440,
-    result: 'Vacation itinerary for 7 days to Bali: Flight options, hotel recommendations, top 15 activities & budget breakdown.',
-  ),
-];
-
-class _SeedTask {
-  final String title;
-  final String status;
-  final int minutesAgo;
-  final String result;
-  const _SeedTask({
-    required this.title,
-    required this.status,
-    required this.minutesAgo,
-    required this.result,
-  });
-
-  bool get isDone => status.toUpperCase() == 'COMPLETED';
-
-  String get timeLabel {
-    if (minutesAgo < 60) return '$minutesAgo min ago';
-    final hours = minutesAgo ~/ 60;
-    if (hours < 24) return '$hours ${hours == 1 ? "hour" : "hours"} ago';
-    final days = hours ~/ 24;
-    return '$days ${days == 1 ? "day" : "days"} ago';
-  }
-
-  String get statusLabel =>
-      isDone ? 'Completed • $timeLabel' : 'In progress • $timeLabel';
-}
+// Real live task tracking for Jack Mobile Agent
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -400,46 +341,83 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  Widget _buildSeedList() {
-    final seeds = _seedTasks.where((t) {
-      if (_selectedFilter == 1) return !t.isDone; // Running
-      if (_selectedFilter == 2) return t.isDone; // Completed
-      return true; // All
-    }).toList();
-
-    if (seeds.isEmpty) {
-      return Center(
-        child: Text(
-          'No ${_filters[_selectedFilter]} tasks',
-          style:
-              GoogleFonts.inter(color: Colors.white38, fontSize: 13),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                border: Border.all(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_circle_outline_rounded,
+                color: Color(0xFF00E5FF),
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'No Tasks Found',
+              style: GoogleFonts.cormorantGaramond(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Jack is ready. Give Jack an autonomous goal from Home or Chat to track live progress here.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: Colors.white54,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF141320),
+                foregroundColor: const Color(0xFF00E5FF),
+                elevation: 0,
+                side: BorderSide(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                  width: 1,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Text(
+                'Ask Jack',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-      itemCount: seeds.length,
-      separatorBuilder: (context, index) => const Divider(
-        color: Colors.white10,
-        height: 1,
-        indent: 44,
       ),
-      itemBuilder: (context, index) {
-        final seed = seeds[index];
-        return _buildTaskRow(
-          title: seed.title,
-          isDone: seed.isDone,
-          statusLabel: seed.statusLabel,
-          result: seed.result,
-          onTap: () => _showTaskDetails(
-            title: seed.title,
-            isDone: seed.isDone,
-            statusLabel: seed.statusLabel,
-            result: seed.result,
-          ),
-        );
-      },
     );
   }
 
@@ -663,15 +641,20 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
             const SizedBox(height: 12),
 
-            // ── Task rows — prefer real backend data, fall back to seeds ──
+            // ── Real task tracking ──────────────────────────────────────────
             Expanded(
               child: liveTasks.isNotEmpty
                   ? _buildFromJackTasks(liveTasks)
                   : asyncTasks.when(
-                      loading: () => _buildSeedList(),
-                      error: (err, _) => _buildSeedList(),
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF00E5FF),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      error: (err, _) => _buildEmptyState(),
                       data: (tasks) => tasks.isEmpty
-                          ? _buildSeedList()
+                          ? _buildEmptyState()
                           : _buildFromBackend(tasks),
                     ),
             ),

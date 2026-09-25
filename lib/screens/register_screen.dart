@@ -21,8 +21,8 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _nameController = TextEditingController(text: 'Easin');
-  final _emailController = TextEditingController(text: 'easin@jack.ai');
+  final _nameController = TextEditingController(text: 'Jaswanth');
+  final _emailController = TextEditingController(text: 'jaswanth@jack.ai');
   final _passwordController = TextEditingController(text: 'jack2026');
   bool _isLoading = false;
   String? _errorMessage;

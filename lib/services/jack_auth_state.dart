@@ -33,7 +33,7 @@ class JackAuthNotifier extends StateNotifier<JackAuthState> {
         // Initialize connected session by default so user is never blocked
         const defaultToken = 'jack_session_authenticated';
         await JackStorage.write(key: 'jack_access_token', value: defaultToken);
-        await JackStorage.write(key: 'jack_user_name', value: 'Easin');
+        await JackStorage.write(key: 'jack_user_name', value: 'Jaswanth');
         state = JackAuthState.AUTHENTICATED;
       }
     } catch (_) {
@@ -48,7 +48,7 @@ class JackAuthNotifier extends StateNotifier<JackAuthState> {
     } catch (_) {
       // Guaranteed offline session fallback
       final prefix = email.split('@').first.trim();
-      final name = prefix.isNotEmpty ? (prefix[0].toUpperCase() + prefix.substring(1)) : 'Easin';
+      final name = prefix.isNotEmpty ? (prefix[0].toUpperCase() + prefix.substring(1)) : 'Jaswanth';
       await JackStorage.write(key: 'jack_access_token', value: 'jack_session_${DateTime.now().millisecondsSinceEpoch}');
       await JackStorage.write(key: 'jack_user_name', value: name);
     }
@@ -67,7 +67,7 @@ class JackAuthNotifier extends StateNotifier<JackAuthState> {
       await _authClient.register(name, email, password);
     } catch (_) {
       // Guaranteed offline registration fallback
-      final displayName = name.trim().isNotEmpty ? name.trim() : 'Easin';
+      final displayName = name.trim().isNotEmpty ? name.trim() : 'Jaswanth';
       await JackStorage.write(key: 'jack_access_token', value: 'jack_session_${DateTime.now().millisecondsSinceEpoch}');
       await JackStorage.write(key: 'jack_user_name', value: displayName);
     }

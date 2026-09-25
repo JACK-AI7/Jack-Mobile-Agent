@@ -27,7 +27,7 @@ class JackTools {
   ));
 
   static const _memoryKey = 'jack_memory_facts';
-  static const _platform  = MethodChannel('com.syncra.syncra/accessibility');
+  static const _platform  = MethodChannel('com.jack.agent/accessibility');
 
   // ── Tool schema list for Groq ──────────────────────────────────────────────
 

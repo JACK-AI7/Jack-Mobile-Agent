@@ -18,7 +18,7 @@ class JackCallReceiver : BroadcastReceiver() {
 
     companion object {
         // EventChannel key used in MainActivity to send call events to Flutter
-        const val CALL_CHANNEL = "com.syncra.syncra/calls"
+        const val CALL_CHANNEL = "com.jack.agent/calls"
         var callEventSink: io.flutter.plugin.common.EventChannel.EventSink? = null
 
         private var lastState = TelephonyManager.CALL_STATE_IDLE

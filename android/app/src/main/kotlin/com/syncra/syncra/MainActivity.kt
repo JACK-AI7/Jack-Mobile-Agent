@@ -38,19 +38,25 @@ class MainActivity : FlutterActivity() {
                 overlayChannel?.invokeMethod("onBubbleTapped", null)
             }
         }
+
+        fun onPillClosed() {
+            Handler(Looper.getMainLooper()).post {
+                overlayChannel?.invokeMethod("onPillDismissed", null)
+            }
+        }
     }
 
-    private val DOM_CHANNEL     = "com.syncra.syncra/accessibility"
-    private val OVERLAY_CHANNEL = "com.syncra.syncra/overlay"
-    private val NOTIF_CHANNEL   = "com.syncra.syncra/notifications"
-    private val CALL_CHANNEL    = "com.syncra.syncra/calls"
-    private val CALL_TALK_CHANNEL = "com.syncra.syncra/call_talk"
+    private val DOM_CHANNEL     = "com.jack.agent/accessibility"
+    private val OVERLAY_CHANNEL = "com.jack.agent/overlay"
+    private val NOTIF_CHANNEL   = "com.jack.agent/notifications"
+    private val CALL_CHANNEL    = "com.jack.agent/calls"
+    private val CALL_TALK_CHANNEL = "com.jack.agent/call_talk"
     private val SHIZUKU_CHANNEL = "com.jack.agent/shizuku"
 
     private var callTts: TextToSpeech? = null
     private var shizukuInitialized = false
 
-    // Hide bubble when the Jack app itself is open
+    // Hide bubble when the Jack app itself is open; show outside the app
     override fun onResume() {
         super.onResume()
         isForeground = true
@@ -65,18 +71,34 @@ class MainActivity : FlutterActivity() {
     override fun onPause() {
         super.onPause()
         isForeground = false
-        JackOverlayService.instance?.showBubble()
+        if (Settings.canDrawOverlays(this)) {
+            val i = Intent(this, JackOverlayService::class.java).apply {
+                putExtra(JackOverlayService.EXTRA_MODE, JackOverlayService.MODE_LISTENING)
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(i)
+                } else {
+                    startService(i)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to start JackOverlayService: ${e.message}")
+            }
+            JackOverlayService.instance?.showBubble()
+        }
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
-        val expected = "$packageName/${JackAccessibilityService::class.java.name}"
+        val expected1 = "$packageName/${JackAccessibilityService::class.java.name}"
+        val expected2 = "$packageName/${JackMasterAccessibilityService::class.java.name}"
         val enabledServices = android.provider.Settings.Secure.getString(
             contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
         val colonSplitter = android.text.TextUtils.SimpleStringSplitter(':')
         colonSplitter.setString(enabledServices)
         while (colonSplitter.hasNext()) {
-            if (colonSplitter.next().equals(expected, ignoreCase = true)) {
+            val item = colonSplitter.next()
+            if (item.equals(expected1, ignoreCase = true) || item.equals(expected2, ignoreCase = true)) {
                 return true
             }
         }
@@ -94,7 +116,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Init Call Talk TTS engine
+        // Init Call Talk TTS engine (Strictly Male British Baritone)
         callTts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 callTts?.setAudioAttributes(
@@ -103,6 +125,28 @@ class MainActivity : FlutterActivity() {
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                         .build()
                 )
+                callTts?.setPitch(0.82f)
+                callTts?.setSpeechRate(0.92f)
+                try {
+                    val voices = callTts?.voices
+                    val maleVoice = voices?.firstOrNull { v ->
+                        val n = v.name.lowercase()
+                        val l = v.locale.toLanguageTag().lowercase()
+                        (l.contains("en-gb") || l.contains("en_gb")) &&
+                        (n.contains("male") || n.contains("rjs") || n.contains("gbc") || n.contains("gbb") || n.contains("george")) &&
+                        !n.contains("female") && !n.contains("gba") && !n.contains("gbf")
+                    } ?: voices?.firstOrNull { v ->
+                        val n = v.name.lowercase()
+                        val l = v.locale.language.lowercase()
+                        l == "en" && (n.contains("male") || n.contains("baritone") || n.contains("sfg") || n.contains("tpd")) &&
+                        !n.contains("female") && !n.contains("woman") && !n.contains("gba") && !n.contains("gbf")
+                    }
+                    if (maleVoice != null) {
+                        callTts?.voice = maleVoice
+                    } else {
+                        callTts?.language = Locale.UK
+                    }
+                } catch (_: Exception) {}
             }
         }
 
@@ -112,8 +156,7 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "speak" -> {
                         val text = call.argument<String>("text") ?: ""
-                        val lang = call.argument<String>("lang") ?: "en"
-                        callTts?.language = Locale(lang)
+                        callTts?.setPitch(0.82f)
                         callTts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "call_talk")
                         result.success(true)
                     }
@@ -185,6 +228,22 @@ class MainActivity : FlutterActivity() {
                             result.success(false)
                         }
                     }
+                    "openUrl"         -> {
+                        val url = call.argument<String>("url")
+                        if (url != null) {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (e: Exception) {
+                                result.success(false)
+                            }
+                        } else {
+                            result.success(false)
+                        }
+                    }
                     "directCall"      -> {
                         var num = call.argument<String>("number")
                         if (num != null) {
@@ -212,6 +271,36 @@ class MainActivity : FlutterActivity() {
                             }
                         } else {
                             result.success("ERROR")
+                        }
+                    }
+                    "endCall" -> {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                val tm = getSystemService(TELECOM_SERVICE) as android.telecom.TelecomManager
+                                if (checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    val ended = tm.endCall()
+                                    result.success(ended)
+                                    return@setMethodCallHandler
+                                }
+                            }
+                            result.success(false)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
+                    "answerCall" -> {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                val tm = getSystemService(TELECOM_SERVICE) as android.telecom.TelecomManager
+                                if (checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    tm.acceptRingingCall()
+                                    result.success(true)
+                                    return@setMethodCallHandler
+                                }
+                            }
+                            result.success(false)
+                        } catch (e: Exception) {
+                            result.success(false)
                         }
                     }
                     "searchContact" -> {
@@ -268,8 +357,89 @@ class MainActivity : FlutterActivity() {
                         val level = call.argument<Int>("level") ?: 50
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
                         val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                        am.setStreamVolume(AudioManager.STREAM_MUSIC, (level * max / 100), 0)
+                        val target = (level * max / 100).coerceIn(0, max)
+                        am.setStreamVolume(AudioManager.STREAM_MUSIC, target, AudioManager.FLAG_SHOW_UI)
                         result.success(true)
+                    }
+                    "toggleBluetooth" -> {
+                        val enable = call.argument<Boolean>("enable") ?: false
+                        try {
+                            val btManager = getSystemService(BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+                            val adapter = btManager?.adapter
+                            if (adapter != null) {
+                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                                    @Suppress("DEPRECATION")
+                                    if (enable) adapter.enable() else adapter.disable()
+                                    result.success(true)
+                                } else {
+                                    val intent = Intent(if (enable) BluetoothAdapter.ACTION_REQUEST_ENABLE else Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    startActivity(intent)
+                                    result.success(true)
+                                }
+                            } else {
+                                val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            }
+                        } catch (e: Exception) {
+                            try {
+                                val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (_: Exception) {
+                                result.success(false)
+                            }
+                        }
+                    }
+                    "toggleWifi" -> {
+                        val enable = call.argument<Boolean>("enable") ?: false
+                        try {
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                                val wm = applicationContext.getSystemService(WIFI_SERVICE) as? android.net.wifi.WifiManager
+                                @Suppress("DEPRECATION")
+                                wm?.isWifiEnabled = enable
+                                result.success(true)
+                            } else {
+                                val intent = Intent(Settings.Panel.ACTION_WIFI).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            }
+                        } catch (e: Exception) {
+                            try {
+                                val intent = Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (_: Exception) {
+                                result.success(false)
+                            }
+                        }
+                    }
+                    "toggleFlashlight" -> {
+                        val enable = call.argument<Boolean>("enable") ?: false
+                        try {
+                            val cm = getSystemService(CAMERA_SERVICE) as CameraManager
+                            val id = cm.cameraIdList.firstOrNull { cid ->
+                                cm.getCameraCharacteristics(cid).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                            }
+                            if (id != null) {
+                                cm.setTorchMode(id, enable)
+                                result.success(true)
+                            } else {
+                                result.success(false)
+                            }
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
                     }
                     "setSpeakerphone" -> {
                         val enable = call.argument<Boolean>("enable") ?: false
@@ -435,10 +605,46 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.jack.agent/controller")
             .setMethodCallHandler { call, result ->
                 val master = JackMasterAccessibilityService.instance
+                val svc = JackAccessibilityService.instance
                 when (call.method) {
-                    "isAccessibilityActive" -> result.success(JackMasterAccessibilityService.isRunning())
+                    "isAccessibilityActive" -> result.success(JackMasterAccessibilityService.isRunning() || svc != null)
                     "openAccessibilitySettings" -> {
                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        result.success(true)
+                    }
+                    "openOverlaySettings" -> {
+                        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    }
+                    "openWriteSettings" -> {
+                        val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    }
+                    "openNotificationListenerSettings" -> {
+                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    }
+                    "openBatteryOptimizationSettings" -> {
+                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    }
+                    "openAppSettings" -> {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
                         result.success(true)
                     }
                     "getRealDeviceMetrics" -> {
@@ -472,34 +678,86 @@ class MainActivity : FlutterActivity() {
                         ))
                     }
                     "readScreen" -> {
-                        if (master != null) result.success(master.dumpActiveScreenHierarchy())
-                        else result.error("SERVICE_OFF", "JackMasterAccessibilityService not running", null)
+                        if (master != null) {
+                            result.success(master.dumpActiveScreenHierarchy())
+                        } else if (svc != null) {
+                            result.success(svc.getScreenText())
+                        } else {
+                            result.error("SERVICE_OFF", "No accessibility service running", null)
+                        }
                     }
                     "clickNode" -> {
                         val id = call.argument<String>("id")
                         val text = call.argument<String>("text")
-                        if (master != null) result.success(master.clickTarget(id, text))
-                        else result.error("SERVICE_OFF", "JackMasterAccessibilityService not running", null)
+                        var ok = master?.clickTarget(id, text) == true
+                        if (!ok && text != null && svc != null) {
+                            ok = svc.performClickOnText(text)
+                        }
+                        result.success(ok)
                     }
                     "clickCoords" -> {
-                        master?.clickCoordinates(call.argument<Double>("x")?.toFloat() ?: 0f, call.argument<Double>("y")?.toFloat() ?: 0f)
-                        result.success(true)
+                        val x = call.argument<Double>("x")?.toFloat() ?: 0f
+                        val y = call.argument<Double>("y")?.toFloat() ?: 0f
+                        var handled = false
+                        if (master != null) {
+                            master.clickCoordinates(x, y)
+                            handled = true
+                        } else if (svc != null) {
+                            handled = svc.clickCoordinates(x, y)
+                        }
+                        if (!handled && JackShizukuManager.isAvailable() && JackShizukuManager.hasPermission()) {
+                            lifecycleScope.launch {
+                                JackShizukuManager.tap(x, y)
+                            }
+                            handled = true
+                        }
+                        result.success(handled)
                     }
                     "typeText" -> {
-                        result.success(master?.typeIntoTarget(call.argument("id"), call.argument("text"), call.argument<String>("data") ?: "") ?: false)
+                        val data = call.argument<String>("data") ?: ""
+                        val id = call.argument<String>("id")
+                        val text = call.argument<String>("text")
+                        var ok = master?.typeIntoTarget(id, text, data) == true
+                        if (!ok && svc != null) {
+                            ok = svc.performTypeText(data)
+                        }
+                        if (!ok && JackShizukuManager.isAvailable() && JackShizukuManager.hasPermission()) {
+                            lifecycleScope.launch {
+                                JackShizukuManager.typeText(data)
+                            }
+                            ok = true
+                        }
+                        result.success(ok)
                     }
                     "swipe" -> {
-                        master?.performSwipe(
-                            call.argument<Double>("startX")?.toFloat() ?: 0f,
-                            call.argument<Double>("startY")?.toFloat() ?: 0f,
-                            call.argument<Double>("endX")?.toFloat() ?: 0f,
-                            call.argument<Double>("endY")?.toFloat() ?: 0f,
-                            call.argument<Int>("duration")?.toLong() ?: 300L
-                        )
-                        result.success(true)
+                        val startX = call.argument<Double>("startX")?.toFloat() ?: 540f
+                        val startY = call.argument<Double>("startY")?.toFloat() ?: 1600f
+                        val endX = call.argument<Double>("endX")?.toFloat() ?: 540f
+                        val endY = call.argument<Double>("endY")?.toFloat() ?: 400f
+                        val duration = call.argument<Int>("duration")?.toLong() ?: 300L
+                        var handled = false
+                        if (master != null) {
+                            master.performSwipe(startX, startY, endX, endY, duration)
+                            handled = true
+                        } else if (svc != null) {
+                            val path = android.graphics.Path().apply {
+                                moveTo(startX, startY)
+                                lineTo(endX, endY)
+                            }
+                            val stroke = android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration)
+                            handled = svc.dispatchGesture(android.accessibilityservice.GestureDescription.Builder().addStroke(stroke).build(), null, null)
+                        }
+                        if (!handled && JackShizukuManager.isAvailable() && JackShizukuManager.hasPermission()) {
+                            lifecycleScope.launch {
+                                JackShizukuManager.swipe(startX, startY, endX, endY, duration)
+                            }
+                            handled = true
+                        }
+                        result.success(handled)
                     }
                     "globalAction" -> {
-                        val code = when (call.argument<String>("action") ?: "") {
+                        val actionStr = call.argument<String>("action") ?: ""
+                        val code = when (actionStr) {
                             "BACK" -> A11ySvc.GLOBAL_ACTION_BACK
                             "HOME" -> A11ySvc.GLOBAL_ACTION_HOME
                             "RECENTS" -> A11ySvc.GLOBAL_ACTION_RECENTS
@@ -507,9 +765,14 @@ class MainActivity : FlutterActivity() {
                             "QUICK_SETTINGS" -> A11ySvc.GLOBAL_ACTION_QUICK_SETTINGS
                             "SCREENSHOT" -> A11ySvc.GLOBAL_ACTION_TAKE_SCREENSHOT
                             "LOCK_SCREEN" -> A11ySvc.GLOBAL_ACTION_LOCK_SCREEN
+                            "POWER_DIALOG" -> A11ySvc.GLOBAL_ACTION_POWER_DIALOG
                             else -> -1
                         }
-                        result.success(if (code != -1 && master != null) master.executeGlobal(code) else false)
+                        var ok = if (code != -1 && master != null) master.executeGlobal(code) else false
+                        if (!ok && code != -1 && svc != null) {
+                            ok = svc.performGlobalAction(code)
+                        }
+                        result.success(ok)
                     }
                     "toggleFlashlight" -> {
                         val enable = call.argument<Boolean>("enable") ?: false
@@ -628,6 +891,11 @@ class MainActivity : FlutterActivity() {
                         val mode = call.argument<String>("mode") ?: JackOverlayService.MODE_LISTENING
                         if (JackOverlayService.instance != null) {
                             JackOverlayService.instance!!.updateMode(mode)
+                            if (mode == "bubble") {
+                                JackOverlayService.instance!!.showBubble()
+                            } else {
+                                JackOverlayService.instance!!.showPill()
+                            }
                         } else {
                             val i = Intent(this, JackOverlayService::class.java)
                             i.putExtra(JackOverlayService.EXTRA_MODE, mode)

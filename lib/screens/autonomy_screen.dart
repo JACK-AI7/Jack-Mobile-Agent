@@ -24,13 +24,13 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
   int _selectedTab = 0;
   final List<String> _tabs = [
     'Overview',
-    'Tools',
+    'Plugins',
     'Skills',
     'Memory',
     'Settings',
   ];
 
-  final int _autonomyScore = 48; // Baseline design reference score
+  int _autonomyScore = 58;
 
   @override
   void initState() {
@@ -40,7 +40,20 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
 
   Future<void> _calculateRealScore() async {
     try {
-      await JackPermissionService.checkAll();
+      final perms = await JackPermissionService.checkAll();
+      int score = 25;
+      if (perms.accessibility) score += 15;
+      if (perms.overlay) score += 10;
+      if (perms.microphone) score += 10;
+      if (perms.phone) score += 10;
+      if (perms.notification) score += 10;
+      if (perms.contacts) score += 5;
+      if (perms.sms) score += 5;
+      if (perms.camera) score += 5;
+      if (perms.battery) score += 5;
+      if (mounted) {
+        setState(() => _autonomyScore = score.clamp(25, 100));
+      }
     } catch (_) {}
   }
 

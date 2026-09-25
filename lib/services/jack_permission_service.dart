@@ -1,16 +1,22 @@
 // lib/services/jack_permission_service.dart
 //
-// Manages device permissions for JACK Mobile Agent:
-// - Accessibility Service (Screen DOM automation, auto-click, gestures)
-// - Overlay Window (Floating Orb bubble over other apps)
-// - Microphone (Voice speech-to-text)
-// - Notifications Listener (Reading notifications)
-// - Phone & Contacts (Direct calling and contact resolution)
+// Complete Device & DOM Full-Access Permission Manager for JACK Mobile Agent.
+// Controls and requests:
+// 1. Accessibility Service (DOM Automation, UI Click, Gestures, Typing, Recents/Home)
+// 2. Overlay Window (Floating Bubble Orb & Wide Live Gemini Pill across apps)
+// 3. Microphone (Voice Recognition & Live Conversations)
+// 4. Phone & Telephony (Autonomous Call Screening, Answer Calls, Direct Dialing)
+// 5. Contacts (Contact Directory Resolution for Calls & Messaging)
+// 6. SMS (Reading & Composing Text Messages)
+// 7. Camera & Flashlight Torch (Physical hardware torch & vision)
+// 8. Notifications (Listening to and reading heads-up alerts)
+// 9. Battery Optimization (24/7 background agent execution)
 // ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 
@@ -18,24 +24,50 @@ class JackPermissionStatus {
   final bool accessibility;
   final bool overlay;
   final bool microphone;
-  final bool notification;
+  final bool phone;
   final bool contacts;
+  final bool sms;
+  final bool notification;
+  final bool camera;
+  final bool battery;
 
   const JackPermissionStatus({
     required this.accessibility,
     required this.overlay,
     required this.microphone,
-    required this.notification,
+    required this.phone,
     required this.contacts,
+    required this.sms,
+    required this.notification,
+    required this.camera,
+    required this.battery,
   });
 
+  int get grantedCount {
+    int count = 0;
+    if (accessibility) count++;
+    if (overlay) count++;
+    if (microphone) count++;
+    if (phone) count++;
+    if (contacts) count++;
+    if (sms) count++;
+    if (notification) count++;
+    if (camera) count++;
+    if (battery) count++;
+    return count;
+  }
+
+  int get totalCount => 9;
+
+  double get progress => grantedCount / totalCount;
+
   bool get allGranted =>
-      accessibility && overlay && microphone && notification;
+      accessibility && overlay && microphone && phone && contacts && notification;
 }
 
 class JackPermissionService {
-  static const MethodChannel _overlayChannel =
-      MethodChannel('com.syncra.syncra/overlay');
+  JackPermissionService._();
+
   static const MethodChannel _controllerChannel =
       MethodChannel('com.jack.agent/controller');
 
@@ -43,52 +75,112 @@ class JackPermissionService {
     bool a11y = false;
     bool overlay = false;
     bool mic = false;
-    bool notif = false;
+    bool phone = false;
     bool contacts = false;
+    bool sms = false;
+    bool notif = false;
+    bool camera = false;
+    bool battery = false;
 
+    // 1. Accessibility Service
     try {
       final res = await _controllerChannel.invokeMethod<bool>('isAccessibilityActive');
       a11y = res ?? false;
     } catch (_) {}
 
+    // 2. Overlay Window
     try {
-      final res = await _overlayChannel.invokeMethod<bool>('hasPermission');
+      final res = await const MethodChannel('com.jack.agent/overlay').invokeMethod<bool>('hasPermission');
       overlay = res ?? false;
-    } catch (_) {}
+      if (!overlay) {
+        overlay = await FlutterOverlayWindow.isPermissionGranted();
+      }
+    } catch (_) {
+      try {
+        overlay = await FlutterOverlayWindow.isPermissionGranted();
+      } catch (_) {}
+    }
 
+    // 3. Microphone
     try {
       mic = await Permission.microphone.isGranted;
     } catch (_) {}
 
+    // 4. Phone
+    try {
+      phone = await Permission.phone.isGranted;
+    } catch (_) {}
+
+    // 5. Contacts
+    try {
+      contacts = await Permission.contacts.isGranted;
+    } catch (_) {}
+
+    // 6. SMS
+    try {
+      sms = await Permission.sms.isGranted;
+    } catch (_) {}
+
+    // 7. Notification
     try {
       notif = await Permission.notification.isGranted;
     } catch (_) {}
 
+    // 8. Camera
     try {
-      contacts = await Permission.contacts.isGranted;
+      camera = await Permission.camera.isGranted;
+    } catch (_) {}
+
+    // 9. Battery Optimization
+    try {
+      battery = await Permission.ignoreBatteryOptimizations.isGranted;
     } catch (_) {}
 
     return JackPermissionStatus(
       accessibility: a11y,
       overlay: overlay,
       microphone: mic,
-      notification: notif,
+      phone: phone,
       contacts: contacts,
+      sms: sms,
+      notification: notif,
+      camera: camera,
+      battery: battery,
     );
   }
 
   static Future<void> requestAll(BuildContext context) async {
+    // 1. Request all runtime permissions sequentially in batch
     try {
-      await _overlayChannel.invokeMethod('requestPermission');
+      await [
+        Permission.microphone,
+        Permission.phone,
+        Permission.contacts,
+        Permission.sms,
+        Permission.notification,
+        Permission.camera,
+        Permission.ignoreBatteryOptimizations,
+      ].request();
     } catch (_) {}
+
+    // 2. Request overlay permission
     try {
-      await Permission.microphone.request();
-    } catch (_) {}
+      final hasOverlay = await FlutterOverlayWindow.isPermissionGranted();
+      if (!hasOverlay) {
+        await FlutterOverlayWindow.requestPermission();
+      }
+    } catch (_) {
+      try {
+        await openOverlaySettings();
+      } catch (_) {}
+    }
+
+    // 3. Check accessibility
     try {
-      await Permission.notification.request();
-    } catch (_) {}
-    try {
-      await Permission.contacts.request();
+      final a11yActive = await _controllerChannel.invokeMethod<bool>('isAccessibilityActive');
+      if (a11yActive != true) {
+        await openAccessibilitySettings();
+      }
     } catch (_) {}
   }
 
@@ -98,18 +190,62 @@ class JackPermissionService {
     } catch (_) {}
   }
 
-  static void showPermissionSheet(BuildContext context) {
+  static Future<void> openOverlaySettings() async {
+    try {
+      await _controllerChannel.invokeMethod('openOverlaySettings');
+    } catch (_) {
+      try {
+        await FlutterOverlayWindow.requestPermission();
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> openWriteSettings() async {
+    try {
+      await _controllerChannel.invokeMethod('openWriteSettings');
+    } catch (_) {}
+  }
+
+  static Future<void> openNotificationListenerSettings() async {
+    try {
+      await _controllerChannel.invokeMethod('openNotificationListenerSettings');
+    } catch (_) {}
+  }
+
+  static Future<void> openBatteryOptimizationSettings() async {
+    try {
+      await _controllerChannel.invokeMethod('openBatteryOptimizationSettings');
+    } catch (_) {
+      try {
+        await Permission.ignoreBatteryOptimizations.request();
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> openAppSettings() async {
+    try {
+      await _controllerChannel.invokeMethod('openAppSettings');
+    } catch (_) {
+      openAppSettings();
+    }
+  }
+
+  static void showPermissionSheet(BuildContext context, {VoidCallback? onComplete}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => const _JackPermissionSheetContent(),
+      isDismissible: false,
+      enableDrag: false,
+      builder: (ctx) => _JackPermissionSheetContent(onComplete: onComplete),
     );
   }
 }
 
 class _JackPermissionSheetContent extends StatefulWidget {
-  const _JackPermissionSheetContent();
+  final VoidCallback? onComplete;
+
+  const _JackPermissionSheetContent({this.onComplete});
 
   @override
   State<_JackPermissionSheetContent> createState() =>
@@ -122,8 +258,12 @@ class _JackPermissionSheetContentState
     accessibility: false,
     overlay: false,
     microphone: false,
-    notification: false,
+    phone: false,
     contacts: false,
+    sms: false,
+    notification: false,
+    camera: false,
+    battery: false,
   );
 
   @override
@@ -144,23 +284,31 @@ class _JackPermissionSheetContentState
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: MediaQuery.of(context).size.height * 0.90,
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 24,
-        bottom: 24 + MediaQuery.of(context).padding.bottom,
+        top: 20,
+        bottom: 16 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF0C0A1A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(color: Colors.white24, width: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C0A1A).withValues(alpha: 0.98),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: const Border(
+          top: BorderSide(color: Colors.white24, width: 1.2),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accentCyan.withValues(alpha: 0.15),
+            blurRadius: 30,
+            spreadRadius: 2,
+          ),
+        ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Drag handle
           Center(
             child: Container(
               width: 44,
@@ -171,95 +319,260 @@ class _JackPermissionSheetContentState
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // Header Badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.accentCyan.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shield_rounded, color: AppColors.accentCyan, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'FULL ACCESS AUTHORIZATION',
+                      style: GoogleFonts.inter(
+                        color: AppColors.accentCyan,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${_status.grantedCount} / ${_status.totalCount} Granted',
+                style: GoogleFonts.inter(
+                  color: _status.progress >= 0.8 ? const Color(0xFF22C55E) : Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
           Text(
-            'Device & DOM Permissions',
+            'Hardware & Software Permissions',
             style: GoogleFonts.cormorantGaramond(
-              fontSize: 26,
+              fontSize: 27,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
-            'Grant permissions for Jack to automate actions, listen via voice, and control apps.',
+            'Grant permissions for Jack to automate actions, intercept calls, listen to voice, and control device hardware seamlessly.',
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 12.5,
               color: AppColors.textSecondary,
-              height: 1.4,
+              height: 1.35,
             ),
           ),
-          const SizedBox(height: 20),
-          _buildItem(
-            icon: Icons.accessibility_new_rounded,
-            color: const Color(0xFF00FF88),
-            title: 'Accessibility Service (DOM Automation)',
-            subtitle: 'Enables Jack to click, scroll, and type in apps',
-            granted: _status.accessibility,
-            onAction: () async {
-              await JackPermissionService.openAccessibilitySettings();
-              await Future.delayed(const Duration(seconds: 2));
-              _refresh();
-            },
-          ),
+
           const SizedBox(height: 12),
-          _buildItem(
-            icon: Icons.picture_in_picture_rounded,
-            color: AppColors.accentCyan,
-            title: 'Draw Over Other Apps (Floating Orb)',
-            subtitle: 'Allows Jack to show floating bubble on any screen',
-            granted: _status.overlay,
-            onAction: () async {
-              await JackPermissionService.requestAll(context);
-              await Future.delayed(const Duration(seconds: 1));
-              _refresh();
-            },
+
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: _status.progress,
+              minHeight: 6,
+              backgroundColor: Colors.white10,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                _status.progress >= 0.8
+                    ? const Color(0xFF22C55E)
+                    : (_status.progress >= 0.4 ? AppColors.accentCyan : AppColors.accentPink),
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildItem(
-            icon: Icons.mic_rounded,
-            color: AppColors.accentPink,
-            title: 'Microphone (Voice Listening)',
-            subtitle: 'Allows real-time voice conversations with Jack',
-            granted: _status.microphone,
-            onAction: () async {
-              await Permission.microphone.request();
-              _refresh();
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildItem(
-            icon: Icons.notifications_active_rounded,
-            color: AppColors.accentViolet,
-            title: 'Notification Access',
-            subtitle: 'Enables Jack to read and announce alerts',
-            granted: _status.notification,
-            onAction: () async {
-              await JackPermissionService.requestAll(context);
-              _refresh();
-            },
-          ),
-          const SizedBox(height: 24),
+
+          const SizedBox(height: 14),
+
+          // Master Grant All Button
           SizedBox(
             width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
+            height: 50,
+            child: ElevatedButton.icon(
               onPressed: () async {
+                HapticFeedback.heavyImpact();
                 await JackPermissionService.requestAll(context);
+                await Future.delayed(const Duration(seconds: 1));
                 await _refresh();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
+              icon: const Icon(Icons.flash_on_rounded, size: 20),
+              label: Text(
+                'Grant All Permissions Now',
+                style: GoogleFonts.inter(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.2,
                 ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentCyan,
+                foregroundColor: Colors.black,
                 elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Scrollable Permission Items List
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildItem(
+                  icon: Icons.accessibility_new_rounded,
+                  color: const Color(0xFF00FF88),
+                  title: 'Accessibility Service (DOM & Actions)',
+                  subtitle: 'Auto-clicks, scrolls, types text, and inspects UI nodes',
+                  granted: _status.accessibility,
+                  onAction: () async {
+                    await JackPermissionService.openAccessibilitySettings();
+                    await Future.delayed(const Duration(seconds: 2));
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.picture_in_picture_rounded,
+                  color: AppColors.accentCyan,
+                  title: 'Draw Over Other Apps (Floating Orb)',
+                  subtitle: 'Displays Jack 3D Orb and Live Pill over all apps',
+                  granted: _status.overlay,
+                  onAction: () async {
+                    await JackPermissionService.openOverlaySettings();
+                    await Future.delayed(const Duration(seconds: 1));
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.mic_rounded,
+                  color: AppColors.accentPink,
+                  title: 'Microphone (Voice Conversation)',
+                  subtitle: 'Real-time hands-free speech recognition and voice commands',
+                  granted: _status.microphone,
+                  onAction: () async {
+                    await Permission.microphone.request();
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.phone_in_talk_rounded,
+                  color: const Color(0xFF38BDF8),
+                  title: 'Phone Calls & Call Screener',
+                  subtitle: 'Screens unknown calls, speaks to callers, and dials numbers',
+                  granted: _status.phone,
+                  onAction: () async {
+                    await Permission.phone.request();
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.contacts_rounded,
+                  color: const Color(0xFFA855F7),
+                  title: 'Contacts Directory',
+                  subtitle: 'Resolves caller identity and dials contacts by name',
+                  granted: _status.contacts,
+                  onAction: () async {
+                    await Permission.contacts.request();
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.sms_rounded,
+                  color: const Color(0xFFFBBF24),
+                  title: 'SMS Messaging',
+                  subtitle: 'Reads incoming messages and composes text replies',
+                  granted: _status.sms,
+                  onAction: () async {
+                    await Permission.sms.request();
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.flash_on_rounded,
+                  color: const Color(0xFFF59E0B),
+                  title: 'Camera & Flashlight Torch (Hardware)',
+                  subtitle: 'Turns flashlight on/off and visual assistance',
+                  granted: _status.camera,
+                  onAction: () async {
+                    await Permission.camera.request();
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.notifications_active_rounded,
+                  color: AppColors.accentViolet,
+                  title: 'Notification Access & Alerts',
+                  subtitle: 'Enables Jack to read and announce heads-up alerts',
+                  granted: _status.notification,
+                  onAction: () async {
+                    await Permission.notification.request();
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildItem(
+                  icon: Icons.battery_charging_full_rounded,
+                  color: const Color(0xFF10B981),
+                  title: 'Ignore Battery Optimizations',
+                  subtitle: 'Keeps Jack active 24/7 in the background without being killed',
+                  granted: _status.battery,
+                  onAction: () async {
+                    await JackPermissionService.openBatteryOptimizationSettings();
+                    await Future.delayed(const Duration(seconds: 1));
+                    _refresh();
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Continue Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                widget.onComplete?.call();
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: Text(
-                'Grant All Permissions',
+                _status.allGranted ? 'Continue to Jack Agent' : 'Continue Anyway',
                 style: GoogleFonts.inter(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -279,11 +592,11 @@ class _JackPermissionSheetContentState
     required VoidCallback onAction,
   }) {
     return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
@@ -325,20 +638,29 @@ class _JackPermissionSheetContentState
                       color: AppColors.success.withValues(alpha: 0.4),
                     ),
                   ),
-                  child: Text(
-                    'Active',
-                    style: GoogleFonts.inter(
-                      color: AppColors.success,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_rounded, color: AppColors.success, size: 13),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Active',
+                        style: GoogleFonts.inter(
+                          color: AppColors.success,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 )
               : GestureDetector(
-                  onTap: onAction,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onAction();
+                  },
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.accentCyan.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),

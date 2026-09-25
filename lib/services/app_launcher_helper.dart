@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
 
@@ -332,9 +333,27 @@ class AppLauncherHelper {
     if (pkg.isNotEmpty && isPackageName(pkg)) {
       try {
         final started = await InstalledApps.startApp(pkg);
-        return started ?? false;
+        if (started == true) return true;
+      } catch (_) {}
+
+      // Fallback: Use native background-capable launchApp via accessibility channel
+      try {
+        const channel = MethodChannel('com.jack.agent/accessibility');
+        final ok = await channel.invokeMethod<bool>('launchApp', {'package': pkg});
+        if (ok == true) return true;
       } catch (_) {}
     }
     return false;
+  }
+
+  /// Opens an HTTP / HTTPS web URL in the system browser or Chrome.
+  static Future<bool> openUrl(String url) async {
+    if (kIsWeb) return false;
+    try {
+      const channel = MethodChannel('com.jack.agent/accessibility');
+      final ok = await channel.invokeMethod<bool>('openUrl', {'url': url});
+      if (ok == true) return true;
+    } catch (_) {}
+    return await launchAppByName('chrome');
   }
 }

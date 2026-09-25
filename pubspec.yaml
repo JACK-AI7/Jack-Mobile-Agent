@@ -51,6 +51,7 @@ dependencies:
   socket_io_client: ^3.1.6
   flutter_accessibility_service: ^1.2.0
   flutter_svg: ^2.0.17
+  flutter_overlay_window: ^0.5.0
 
 dev_dependencies:
   flutter_test:

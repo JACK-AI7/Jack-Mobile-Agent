@@ -163,7 +163,10 @@ class JackMasterAccessibilityService : AccessibilityService() {
 
     /** Synthesises a tap gesture at absolute screen coordinates. */
     fun clickCoordinates(x: Float, y: Float) {
-        val path = Path().apply { moveTo(x, y) }
+        val path = Path().apply {
+            moveTo(x, y)
+            lineTo(x, y + 1f)
+        }
         val stroke = GestureDescription.StrokeDescription(path, 0L, 50L)
         dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), null, null)
     }

@@ -52,184 +52,100 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   int _selectedFilter = 0; // 0: Agents, 1: Prompts, 2: Workflows
   final List<String> _filters = ['Agents', 'Prompts', 'Workflows'];
 
-  // Canonical 5 Agents matching reference image exactly:
-  // 1. Research Agent (Deep research & analysis, purple flower/gear)
-  // 2. Content Agent (Create & edit content, cyan document)
-  // 3. Data Analyst (Analyze data & generate insights, blue chart)
-  // 4. Social Media Agent (Plan & schedule posts, navy/slate capsule)
-  // 5. Custom Agent (Your own agent, luminous purple crosshair)
+  // 5 Specialized Autonomous Sub-Agents (Grok-inspired Architecture)
   final List<_LibraryItem> _agents = const [
     _LibraryItem(
-      id: 'research_agent',
-      title: 'Research Agent',
-      subtitle: 'Deep research & analysis',
-      icon: Icons.auto_awesome_rounded,
-      iconColor: Color(0xFFC084FC),
-      bgGradientStart: Color(0xFF3B0764),
-      bgGradientEnd: Color(0xFF1E1035),
-      model: 'Llama 3.3 70B Versatile',
+      id: 'agent_executive',
+      title: 'Executive Planner Agent',
+      subtitle: 'Decomposes complex goals and coordinates sub-agents.',
+      icon: Icons.hub_rounded,
+      iconColor: Color(0xFF00E5FF),
+      bgGradientStart: Color(0xFF083344),
+      bgGradientEnd: Color(0xFF0C4A6E),
+      model: 'Groq Llama 3.3 70B Versatile',
       systemPrompt:
-          'You are an expert research analyst. Gather facts, synthesize complex sources, cite data points, and deliver structured briefings.',
+          'Autonomous Executive Planner: Breaks objectives into structured sub-tasks, evaluates outputs, and routes between Specialist agents.',
       capabilities: [
-        'Web Search & Grounding',
-        'Academic Paper Synthesis',
-        'Competitor Landscape Mapping',
-        'Executive Briefing Generation',
+        'Multi-Agent Coordination (Grok Architecture)',
+        'Goal Decomposition & Dependency Tree',
+        'Output Verification & Answer Synthesis',
       ],
     ),
     _LibraryItem(
-      id: 'content_agent',
-      title: 'Content Agent',
-      subtitle: 'Create & edit content',
-      icon: Icons.article_rounded,
-      iconColor: Color(0xFF22D3EE),
-      bgGradientStart: Color(0xFF0E4A5C),
-      bgGradientEnd: Color(0xFF08222C),
-      model: 'Llama 3.3 70B Versatile',
-      systemPrompt:
-          'You are a premier content strategist and copywriter. Draft compelling narratives, blog posts, changelogs, and marketing copy.',
-      capabilities: [
-        'Long-form Article Drafting',
-        'Grammar & Tone Modulation',
-        'Social Hook Generation',
-        'SEO Keyword Integration',
-      ],
-    ),
-    _LibraryItem(
-      id: 'data_analyst',
-      title: 'Data Analyst',
-      subtitle: 'Analyze data & generate insights',
-      icon: Icons.bar_chart_rounded,
+      id: 'agent_device',
+      title: 'Device & DOM Specialist',
+      subtitle: 'Performs Android taps, keyboard input, scrolls and hardware.',
+      icon: Icons.phone_android_rounded,
       iconColor: Color(0xFF38BDF8),
-      bgGradientStart: Color(0xFF1E3A8A),
-      bgGradientEnd: Color(0xFF0F172A),
-      model: 'DeepSeek R1 / Llama 70B',
+      bgGradientStart: Color(0xFF0B2545),
+      bgGradientEnd: Color(0xFF134074),
+      model: 'Android Native Accessibility Bridge',
       systemPrompt:
-          'You are a senior quantitative data scientist. Parse numerical datasets, calculate trends, detect anomalies, and derive strategic conclusions.',
+          'Device & DOM Specialist: Directly controls accessibility node trees, UIAutomator clicks, Shizuku, and hardware switches.',
       capabilities: [
-        'CSV & JSON Schema Analysis',
-        'Statistical Regression',
-        'Trend & Outlier Detection',
-        'Visualization Prompting',
+        'Real Native Hardware Switches (Torch, Volume, Bluetooth)',
+        'UIAutomator Screen Tap & Text Injection',
+        'Installed Package Launcher & App Navigation',
       ],
     ),
     _LibraryItem(
-      id: 'social_media_agent',
-      title: 'Social Media Agent',
-      subtitle: 'Plan & schedule posts',
-      icon: Icons.rocket_launch_rounded,
-      iconColor: Color(0xFFA5B4FC),
-      bgGradientStart: Color(0xFF1E293B),
-      bgGradientEnd: Color(0xFF0F172A),
-      model: 'Llama 3.3 70B Versatile',
+      id: 'agent_research',
+      title: 'Deep Research Specialist',
+      subtitle: 'Conducts Google search grounding, deals and spec extraction.',
+      icon: Icons.travel_explore_rounded,
+      iconColor: Color(0xFF2DD4BF),
+      bgGradientStart: Color(0xFF064E3B),
+      bgGradientEnd: Color(0xFF047857),
+      model: 'Google Grounding + Llama 3.3',
       systemPrompt:
-          'You are a high-growth social media manager. Architect viral threads, schedule multi-channel updates, and optimize engagement hooks.',
+          'Deep Research Specialist: Extracts real retail listings, technical specifications, and live web sources with clickable links.',
       capabilities: [
-        'Viral Hook Generation',
-        'Cross-platform Scheduling',
-        'Audience Persona Triage',
-        'Hashtag & Metric Strategy',
+        'Live Google Search Grounding',
+        'Side-by-Side Product Comparison (Laptops, Tech)',
+        'Verified Store Links & Deal Tracking',
       ],
     ),
     _LibraryItem(
-      id: 'custom_agent',
-      title: 'Custom Agent',
-      subtitle: 'Your own agent',
-      icon: Icons.track_changes_rounded,
-      iconColor: Color(0xFFE879F9),
-      bgGradientStart: Color(0xFF7C3AED),
-      bgGradientEnd: Color(0xFF4C1D95),
-      model: 'Fully Configurable',
+      id: 'agent_mcp',
+      title: 'Tool & MCP Integration Agent',
+      subtitle: 'Communicates with Gmail, GitHub, Notion, Slack & Drive.',
+      icon: Icons.extension_rounded,
+      iconColor: Color(0xFF7C3AED),
+      bgGradientStart: Color(0xFF2E1065),
+      bgGradientEnd: Color(0xFF581C87),
+      model: 'Model Context Protocol (JSON-RPC 2.0)',
       systemPrompt:
-          'You are a custom AI agent tailored by the user with personalized memory, tools, and reasoning rules.',
+          'Tool & MCP Integration Agent: Interacts with active MCP server endpoints over JSON-RPC 2.0 and native protocols.',
       capabilities: [
-        'Custom Tool Bindings',
-        'Episodic Memory Access',
-        'Automated Action Triggers',
-        'Multi-Agent Delegation',
+        'Gmail Inbox Triage & Smart Replies',
+        'GitHub Pull Request & Repo Dispatcher',
+        'Notion, Slack & Cloud Drive Synchronization',
+      ],
+    ),
+    _LibraryItem(
+      id: 'agent_telephony',
+      title: 'Telephony & Voice Agent',
+      subtitle: 'Screens phone calls and speaks in British baritone voice.',
+      icon: Icons.record_voice_over_rounded,
+      iconColor: Color(0xFFEC4899),
+      bgGradientStart: Color(0xFF500724),
+      bgGradientEnd: Color(0xFF831843),
+      model: 'JARVIS British Baritone TTS',
+      systemPrompt:
+          'Telephony & Voice Agent: Answers incoming phone calls, screens caller intentions, and maintains natural conversational dialogue.',
+      capabilities: [
+        'Autonomous Call Screener & Transcription',
+        'British Male Baritone Voice (JARVIS Cadence)',
+        'Speech-to-Text Continuous Streaming',
       ],
     ),
   ];
 
   // Saved Prompts
-  final List<_LibraryItem> _prompts = const [
-    _LibraryItem(
-      id: 'prompt_1',
-      title: 'Market Analysis Template',
-      subtitle: 'TAM, SAM & SOM competitor breakdown',
-      icon: Icons.pie_chart_rounded,
-      iconColor: Color(0xFFFBBF24),
-      bgGradientStart: Color(0xFF78350F),
-      bgGradientEnd: Color(0xFF1E1305),
-      model: 'Groq Llama 3.3',
-      systemPrompt: 'Provide a structured total addressable market analysis.',
-      capabilities: ['Market Sizing', 'Competitor Comparison'],
-    ),
-    _LibraryItem(
-      id: 'prompt_2',
-      title: 'Code Architecture Review',
-      subtitle: 'Detect bottlenecks & structural debt',
-      icon: Icons.code_rounded,
-      iconColor: Color(0xFF34D399),
-      bgGradientStart: Color(0xFF064E3B),
-      bgGradientEnd: Color(0xFF022C22),
-      model: 'Groq Llama 3.3',
-      systemPrompt: 'Analyze code repository for anti-patterns and performance.',
-      capabilities: ['Refactoring', 'Lint Analysis'],
-    ),
-    _LibraryItem(
-      id: 'prompt_3',
-      title: 'Daily Standup Summary',
-      subtitle: 'Consolidate git commits & blocker tickets',
-      icon: Icons.fact_check_rounded,
-      iconColor: Color(0xFF60A5FA),
-      bgGradientStart: Color(0xFF1E3A8A),
-      bgGradientEnd: Color(0xFF0F172A),
-      model: 'Groq Llama 3.3',
-      systemPrompt: 'Generate a clean bulleted 3-part daily standup summary.',
-      capabilities: ['Sprint Tracking', 'Git Log Parsing'],
-    ),
-  ];
+  final List<_LibraryItem> _prompts = const [];
 
   // Saved Workflows
-  final List<_LibraryItem> _workflows = const [
-    _LibraryItem(
-      id: 'workflow_1',
-      title: 'Autonomous Market Intel',
-      subtitle: 'Search competitors → Scrape → Briefing',
-      icon: Icons.account_tree_rounded,
-      iconColor: Color(0xFFFB923C),
-      bgGradientStart: Color(0xFF7C2D12),
-      bgGradientEnd: Color(0xFF1E0A05),
-      model: 'Multi-Agent Pipeline',
-      systemPrompt: 'Execute multi-step pipeline for market data intelligence.',
-      capabilities: ['Web Crawler', 'Summarizer', 'Export to PDF'],
-    ),
-    _LibraryItem(
-      id: 'workflow_2',
-      title: 'CI/CD Auto-Remediation',
-      subtitle: 'Catch test failures → Patch → Open PR',
-      icon: Icons.healing_rounded,
-      iconColor: Color(0xFF38BDF8),
-      bgGradientStart: Color(0xFF0369A1),
-      bgGradientEnd: Color(0xFF082F49),
-      model: 'Multi-Agent Pipeline',
-      systemPrompt: 'Analyze build logs and automatically propose fixes.',
-      capabilities: ['Log Parser', 'Diff Generator', 'GitHub Dispatcher'],
-    ),
-    _LibraryItem(
-      id: 'workflow_3',
-      title: 'Lead Sourcing Pipeline',
-      subtitle: 'Ingest signups → Enrich metadata → Slack alert',
-      icon: Icons.hub_rounded,
-      iconColor: Color(0xFFA855F7),
-      bgGradientStart: Color(0xFF581C87),
-      bgGradientEnd: Color(0xFF1E0638),
-      model: 'Multi-Agent Pipeline',
-      systemPrompt: 'Enrich lead contact profiles and send real-time alerts.',
-      capabilities: ['Data Enrichment', 'Slack Webhook', 'CRM Sync'],
-    ),
-  ];
+  final List<_LibraryItem> _workflows = const [];
 
   void _showItemInspector(_LibraryItem item) {
     HapticFeedback.mediumImpact();
@@ -584,13 +500,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
             const SizedBox(height: 16),
 
-            // ── Cards List (Research Agent, Content Agent, Data Analyst, etc.) 
+            // ── Cards List 
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                itemCount: items.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
+              child: items.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No ${_filters[_selectedFilter].toLowerCase()} saved yet.',
+                        style: GoogleFonts.inter(
+                          color: Colors.white38,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                      itemCount: items.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = items[index];
 
@@ -685,7 +611,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       bottomNavigationBar: GlassNavBar(
         currentIndex: 2, // Library tab
         isLibraryActive: true,
-        exploreLabel: 'Tools',
+        exploreLabel: 'Plugins',
         onTap: (index) {
           HapticFeedback.lightImpact();
           switch (index) {

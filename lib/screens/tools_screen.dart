@@ -18,6 +18,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
+import '../widgets/animations/animated_beam.dart';
+import '../services/mcp/jack_mcp_client.dart' as import_mcp;
+import '../services/api/jack_storage.dart';
 
 class _ToolModel {
   final String id;
@@ -59,6 +62,26 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
   @override
   void initState() {
     super.initState();
+    _initTools();
+    _loadSavedConnections();
+  }
+
+  Future<void> _loadSavedConnections() async {
+    for (final tool in _tools) {
+      final saved = await JackStorage.read(key: 'mcp_connected_${tool.id}');
+      if (saved != null) {
+        tool.connected = saved == 'true';
+      } else {
+        // Canonical defaults matching design reference Screen 07: Google, GitHub, Gmail
+        if (tool.id == 'google' || tool.id == 'github' || tool.id == 'gmail') {
+          tool.connected = true;
+        }
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _initTools() {
     // Canonical tool definitions matching reference image exactly:
     // Google: Connected, GitHub: Connected, Notion: Connect, Slack: Connect, Gmail: Connected
     _tools = [
@@ -74,7 +97,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
           'Google Calendar Actions',
           'Workspace Contact Directory',
         ],
-        connected: true,
+        connected: false,
       ),
       _ToolModel(
         id: 'github',
@@ -88,7 +111,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
           'Issue Tracker & Bug Reports',
           'GitHub Actions Workflow Monitor',
         ],
-        connected: true,
+        connected: false,
       ),
       _ToolModel(
         id: 'notion',
@@ -130,7 +153,333 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
           'Parse Email Attachments',
           'Dispatch Priority Alerts',
         ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'telecom',
+        name: 'AI Call Screener',
+        svgAsset: 'assets/logos/google.svg',
+        mcpEndpoint: 'mcp://telephony.jack.ai/v1',
+        description: 'Autonomous call screening, British male caller interaction, and dialogue transcription.',
+        capabilities: [
+          'Live Incoming Call Interception',
+          'British Male Baritone Caller Dialogue',
+          'Groq LLM Dynamic Conversational Reasoning',
+          'Auto-Transcribe & Task Logging',
+        ],
         connected: true,
+      ),
+      _ToolModel(
+        id: 'linear',
+        name: 'Linear',
+        svgAsset: 'assets/logos/linear.svg',
+        mcpEndpoint: 'mcp://linear.app/v1',
+        description: 'Sync issues, triage bugs, and manage project cycles with real-time bidirectional sync.',
+        capabilities: [
+          'Create & Update Issues',
+          'Read Project Cycles',
+          'Search Ticket History',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'jira',
+        name: 'Jira',
+        svgAsset: 'assets/logos/jira.svg',
+        mcpEndpoint: 'mcp://jira.atlassian.com/api',
+        description: 'Enterprise task tracking, sprint management, and agile board synchronization.',
+        capabilities: [
+          'Manage Sprint Boards',
+          'Assign Tickets',
+          'Update Status Transitions',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'figma',
+        name: 'Figma',
+        svgAsset: 'assets/logos/figma.svg',
+        mcpEndpoint: 'mcp://api.figma.com/v1',
+        description: 'Read design tokens, inspect component trees, and fetch asset exports directly from canvas.',
+        capabilities: [
+          'Extract Design Tokens',
+          'Inspect Component Properties',
+          'Export UI Assets',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'discord',
+        name: 'Discord',
+        svgAsset: 'assets/logos/discord.svg',
+        mcpEndpoint: 'mcp://discord.com/api/v10',
+        description: 'Community server monitoring, automated announcements, and threaded conversations.',
+        capabilities: [
+          'Send Channel Messages',
+          'Manage Roles & Invites',
+          'Listen for Mentions',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'spotify',
+        name: 'Spotify',
+        svgAsset: 'assets/logos/spotify.svg',
+        mcpEndpoint: 'mcp://api.spotify.com/v1',
+        description: 'Control playback, search catalogs, and generate dynamic AI-driven playlists.',
+        capabilities: [
+          'Control Active Devices',
+          'Search Tracks & Artists',
+          'Create Custom Playlists',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'stripe',
+        name: 'Stripe',
+        svgAsset: 'assets/logos/stripe.svg',
+        mcpEndpoint: 'mcp://api.stripe.com/v1',
+        description: 'Monitor financial transactions, manage subscriptions, and generate revenue reports.',
+        capabilities: [
+          'List Recent Charges',
+          'View Customer Subscriptions',
+          'Generate Revenue Summaries',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'trello',
+        name: 'Trello',
+        svgAsset: 'assets/logos/trello.svg',
+        mcpEndpoint: 'mcp://api.trello.com/1',
+        description: 'Manage kanban boards, sort cards, and track lightweight project pipelines.',
+        capabilities: [
+          'Move Cards Across Lists',
+          'Add Card Attachments',
+          'Read Board Activity',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'x',
+        name: 'X (Twitter)',
+        svgAsset: 'assets/logos/x.svg',
+        mcpEndpoint: 'mcp://api.x.com/2',
+        description: 'Automate social posts, track sentiment analysis, and read trending topics.',
+        capabilities: [
+          'Post New Tweets',
+          'Read Timeline & Mentions',
+          'Analyze Sentiment Data',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'dropbox',
+        name: 'Dropbox',
+        svgAsset: 'assets/logos/dropbox.svg',
+        mcpEndpoint: 'mcp://api.dropbox.com/2',
+        description: 'Secure cloud file management, document parsing, and backup synchronization.',
+        capabilities: [
+          'Read File Contents',
+          'Upload Backup Archives',
+          'Search Cloud Storage',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'asana',
+        name: 'Asana',
+        svgAsset: 'assets/logos/asana.svg',
+        mcpEndpoint: 'mcp://app.asana.com/api/1.0',
+        description: 'Cross-functional team task alignment, portfolio tracking, and goal management.',
+        capabilities: [
+          'Assign Team Tasks',
+          'Read Portfolio Progress',
+          'Update Task Dependencies',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'zendesk',
+        name: 'Zendesk',
+        svgAsset: 'assets/logos/zendesk.svg',
+        mcpEndpoint: 'mcp://api.zendesk.com/v2',
+        description: 'Automated customer support triage, ticket routing, and AI-assisted macro replies.',
+        capabilities: [
+          'Triage New Tickets',
+          'Draft Support Replies',
+          'Update Ticket Status',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'hubspot',
+        name: 'HubSpot',
+        svgAsset: 'assets/logos/hubspot.svg',
+        mcpEndpoint: 'mcp://api.hubapi.com/v3',
+        description: 'CRM lead tracking, marketing email automation, and deal pipeline analytics.',
+        capabilities: [
+          'Search CRM Contacts',
+          'Update Deal Stages',
+          'Track Marketing Campaigns',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'anthropic',
+        name: 'Anthropic (Claude)',
+        svgAsset: 'assets/logos/anthropic.svg',
+        mcpEndpoint: 'mcp://api.anthropic.com/v1',
+        description: 'Advanced reasoning, constitutional AI interactions, and 200k token context processing.',
+        capabilities: [
+          'Generate Complex Code',
+          'Analyze Long Documents',
+          'Process Natural Language',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'datadog',
+        name: 'Datadog',
+        svgAsset: 'assets/logos/datadog.svg',
+        mcpEndpoint: 'mcp://api.datadoghq.com/v1',
+        description: 'Monitor cloud infrastructure, application traces, and alerting metrics in real-time.',
+        capabilities: [
+          'Read Infrastructure Metrics',
+          'Acknowledge Pager Alerts',
+          'View APM Traces',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'docker',
+        name: 'Docker',
+        svgAsset: 'assets/logos/docker.svg',
+        mcpEndpoint: 'mcp://var/run/docker.sock',
+        description: 'Manage containers, build multi-arch images, and inspect live container logs.',
+        capabilities: [
+          'List Running Containers',
+          'Build Dockerfiles',
+          'Stream Container Logs',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'googlecloud',
+        name: 'Google Cloud (GCP)',
+        svgAsset: 'assets/logos/googlecloud.svg',
+        mcpEndpoint: 'mcp://cloud.google.com/v1',
+        description: 'Deploy serverless functions, manage BigQuery databases, and scale Kubernetes clusters.',
+        capabilities: [
+          'Provision Cloud Resources',
+          'Execute BigQuery SQL',
+          'Scale GKE Clusters',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'mongodb',
+        name: 'MongoDB',
+        svgAsset: 'assets/logos/mongodb.svg',
+        mcpEndpoint: 'mcp://mongodb.atlas.com/api',
+        description: 'Query NoSQL documents, analyze aggregations, and monitor cluster performance.',
+        capabilities: [
+          'Execute Document Queries',
+          'Run Aggregation Pipelines',
+          'Monitor DB Performance',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'postgresql',
+        name: 'PostgreSQL',
+        svgAsset: 'assets/logos/postgresql.svg',
+        mcpEndpoint: 'mcp://postgres.cloud.com/v1',
+        description: 'Execute relational database queries, manage schemas, and run complex joins.',
+        capabilities: [
+          'Execute SQL Queries',
+          'Describe DB Schemas',
+          'Perform Migrations',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'sentry',
+        name: 'Sentry',
+        svgAsset: 'assets/logos/sentry.svg',
+        mcpEndpoint: 'mcp://sentry.io/api/0',
+        description: 'Track application exceptions, analyze crash reports, and resolve user issues.',
+        capabilities: [
+          'List Recent Exceptions',
+          'Resolve Issues',
+          'Read Crash Stacktraces',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'shopify',
+        name: 'Shopify',
+        svgAsset: 'assets/logos/shopify.svg',
+        mcpEndpoint: 'mcp://api.shopify.com/admin',
+        description: 'Manage e-commerce inventory, process orders, and handle customer data.',
+        capabilities: [
+          'Read Store Inventory',
+          'Update Product Prices',
+          'Fulfill Orders',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'supabase',
+        name: 'Supabase',
+        svgAsset: 'assets/logos/supabase.svg',
+        mcpEndpoint: 'mcp://api.supabase.com/v1',
+        description: 'Manage Auth users, query PostgREST APIs, and access Edge Functions.',
+        capabilities: [
+          'Manage User Auth',
+          'Query DB via PostgREST',
+          'Deploy Edge Functions',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'vercel',
+        name: 'Vercel',
+        svgAsset: 'assets/logos/vercel.svg',
+        mcpEndpoint: 'mcp://api.vercel.com/v1',
+        description: 'Deploy frontend projects, manage domain routing, and inspect Edge configurations.',
+        capabilities: [
+          'Trigger Deployments',
+          'Read Build Logs',
+          'Manage Environment Variables',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'whatsapp',
+        name: 'WhatsApp',
+        svgAsset: 'assets/logos/whatsapp.svg',
+        mcpEndpoint: 'mcp://graph.facebook.com/v17.0',
+        description: 'Automate business messaging, send templates, and handle customer replies.',
+        capabilities: [
+          'Send Text Messages',
+          'Read Incoming Chats',
+          'Send Media Attachments',
+        ],
+        connected: false,
+      ),
+      _ToolModel(
+        id: 'zoom',
+        name: 'Zoom',
+        svgAsset: 'assets/logos/zoom.svg',
+        mcpEndpoint: 'mcp://api.zoom.us/v2',
+        description: 'Schedule video meetings, manage webinars, and fetch cloud recordings.',
+        capabilities: [
+          'Schedule Meetings',
+          'List Cloud Recordings',
+          'Generate Meeting Transcripts',
+        ],
+        connected: false,
       ),
     ];
   }
@@ -327,7 +676,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
                                   messenger.showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'MCP Handshake Successful: ${tool.capabilities.length} tools registered for ${tool.name}',
+                                        'MCP Handshake Successful: ${tool.capabilities.length} plugins registered for ${tool.name}',
                                       ),
                                       backgroundColor: AppColors.surfaceElevated,
                                       behavior: SnackBarBehavior.floating,
@@ -345,7 +694,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
 
                     // Capabilities Toggles
                     Text(
-                      'Active Capabilities & Tools',
+                      'Active Capabilities & Plugins',
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 13.5,
@@ -404,25 +753,70 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           HapticFeedback.mediumImpact();
-                          final newStatus = !tool.connected;
-                          setState(() {
-                            tool.connected = newStatus;
-                          });
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                newStatus
-                                    ? '${tool.name} connected successfully via MCP!'
-                                    : '${tool.name} disconnected.',
+                          
+                          if (tool.connected) {
+                            setState(() {
+                              tool.connected = false;
+                            });
+                            await JackStorage.write(
+                              key: 'mcp_connected_${tool.id}',
+                              value: 'false',
+                            );
+                            if (modalContext.mounted) {
+                              Navigator.pop(ctx);
+                            }
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${tool.name} disconnected.'),
+                                  backgroundColor: AppColors.surfaceElevated,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          // Attempt Real Connection
+                          setModalState(() => testingHandshake = true);
+                          final client = import_mcp.JackMcpClient();
+                          final success = await client.ping(mcpController.text);
+                          setModalState(() => testingHandshake = false);
+
+                          if (success) {
+                            setState(() {
+                              tool.connected = true;
+                            });
+                            await JackStorage.write(
+                              key: 'mcp_connected_${tool.id}',
+                              value: 'true',
+                            );
+                            if (modalContext.mounted) {
+                              Navigator.pop(ctx);
+                            }
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${tool.name} connected successfully via MCP!'),
+                                  backgroundColor: AppColors.surfaceElevated,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } else if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to connect to ${mcpController.text}. Ensure server is running.'),
+                                backgroundColor: const Color(0xFFEF4444),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 3),
                               ),
-                              backgroundColor: AppColors.surfaceElevated,
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: tool.connected
@@ -440,7 +834,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
                           ),
                         ),
                         child: Text(
-                          tool.connected ? 'Disconnect Tool' : 'Connect via MCP',
+                          tool.connected ? 'Disconnect Plugin' : (testingHandshake ? 'Connecting...' : 'Connect via MCP'),
                           style: GoogleFonts.inter(
                             fontSize: 14.5,
                             fontWeight: FontWeight.bold,
@@ -456,6 +850,40 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
         );
       },
     );
+  }
+  Color _getToolPrimaryColor(String id) {
+    switch (id) {
+      case 'google':
+        return const Color(0xFF4285F4);
+      case 'github':
+        return const Color(0xFF818CF8);
+      case 'gmail':
+        return const Color(0xFFEA4335);
+      case 'notion':
+        return const Color(0xFF38BDF8);
+      case 'slack':
+        return const Color(0xFFE879F9);
+      case 'linear':
+        return const Color(0xFF5E6AD2);
+      case 'jira':
+        return const Color(0xFF0052CC);
+      case 'figma':
+        return const Color(0xFFF24E1E);
+      case 'discord':
+        return const Color(0xFF5865F2);
+      case 'spotify':
+        return const Color(0xFF1DB954);
+      case 'stripe':
+        return const Color(0xFF635BFF);
+      case 'whatsapp':
+        return const Color(0xFF25D366);
+      case 'x':
+        return const Color(0xFF1DA1F2);
+      case 'anthropic':
+        return const Color(0xFFD97706);
+      default:
+        return const Color(0xFF00E5FF);
+    }
   }
 
   @override
@@ -512,7 +940,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Tools',
+                    'Plugins',
                     style: GoogleFonts.cormorantGaramond(
                       color: Colors.white,
                       fontSize: 36,
@@ -523,7 +951,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Connect and use powerful tools.',
+                    'Connect and use powerful plugins.',
                     style: GoogleFonts.inter(
                       color: Colors.white54,
                       fontSize: 13.5,
@@ -590,88 +1018,126 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
 
             // ── Tools List (Google, GitHub, Notion, Slack, Gmail) ───────────
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
-                itemCount: filtered.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final tool = filtered[index];
-                  final isConnected = tool.connected;
-
-                  return GestureDetector(
-                    onTap: () => _showToolDetails(tool),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          // Authentic Brand Logo Icon
-                          SizedBox(
-                            width: 38,
-                            height: 38,
-                            child: Center(
-                              child: SvgPicture.asset(
-                                tool.svgAsset,
-                                width: 34,
-                                height: 34,
-                              ),
-                            ),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+                children: [
+                  // ── Magic UI Animated Integration Beam Hub (Connected Only) ──
+                  if (_selectedFilter == 0 || _selectedFilter == 1) ...[
+                    JackAnimatedBeamHub(
+                      connectedPlugins: _tools
+                          .where((t) => t.connected)
+                          .map((t) => BeamPluginItem(
+                                id: t.id,
+                                name: t.name.split(' ').first,
+                                svgAsset: t.svgAsset,
+                                primaryColor: _getToolPrimaryColor(t.id),
+                                secondaryColor: const Color(0xFF7C3AED),
+                              ))
+                          .toList(),
+                      onToolTap: (toolId) {
+                        final tool = _tools.firstWhere(
+                          (t) => t.id == toolId,
+                          orElse: () => _tools.first,
+                        );
+                        _showToolDetails(tool);
+                      },
+                      onCenterTap: () {
+                        final count = _tools.where((t) => t.connected).length;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Jack Agent Core: $count connected neural integration${count == 1 ? '' : 's'} active.'),
+                            backgroundColor: AppColors.surfaceElevated,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
                           ),
-                          const SizedBox(width: 16),
-
-                          // Tool Name + Connected / Connect Subtitle
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  tool.name,
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  isConnected ? 'Connected' : 'Connect',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: isConnected
-                                        ? const Color(0xFF2DD4BF) // Emerald / Teal
-                                        : const Color(0xFF38BDF8), // Sky Blue
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Trailing Chevron
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white30,
-                            size: 18,
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
+                    const SizedBox(height: 18),
+                  ],
+
+                  // ── Tools List (Google, GitHub, Notion, Slack, Gmail) ───
+                  ...filtered.map((tool) {
+                    final isConnected = tool.connected;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () => _showToolDetails(tool),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              // Authentic Brand Logo Icon
+                              SizedBox(
+                                width: 38,
+                                height: 38,
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    tool.svgAsset,
+                                    width: 34,
+                                    height: 34,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+
+                              // Tool Name + Connected / Connect Subtitle
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tool.name,
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      isConnected ? 'Connected' : 'Connect',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: isConnected
+                                            ? const Color(0xFF2DD4BF) // Emerald / Teal
+                                            : const Color(0xFF38BDF8), // Sky Blue
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Trailing Chevron
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white30,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
           ],
         ),
       ),
-      // Bottom Navigation Bar matching 12-screen specification with Tools tab active
+      // Bottom Navigation Bar matching 12-screen specification with Plugins tab active
       bottomNavigationBar: GlassNavBar(
-        currentIndex: 1, // Tools is Tab index 1
-        exploreLabel: 'Tools',
+        currentIndex: 1, // Plugins is Tab index 1
+        exploreLabel: 'Plugins',
         onTap: (index) {
           HapticFeedback.lightImpact();
           switch (index) {
@@ -679,7 +1145,7 @@ class _ToolsScreenState extends ConsumerState<ToolsScreen> {
               context.go('/home');
               break;
             case 1:
-              // Already on Tools
+              // Already on Plugins
               break;
             case 2:
               context.go('/agent-builder');

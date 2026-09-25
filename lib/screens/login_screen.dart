@@ -1,7 +1,7 @@
 // lib/screens/login_screen.dart
 //
 // Connected Login Screen for JACK Mobile Agent
-// Supports credentials login, 1-tap demo sign-in as Easin,
+// Supports credentials login, 1-tap demo sign-in as Jaswanth,
 // secure token persistence, and instant router redirection.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
@@ -23,7 +23,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController(text: 'easin@jack.ai');
+  final _emailController = TextEditingController(text: 'jaswanth@jack.ai');
   final _passwordController = TextEditingController(text: 'jack2026');
   bool _isLoading = false;
   String? _errorMessage;
@@ -233,13 +233,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onPressed: _isLoading
                               ? null
                               : () => _login(
-                                    emailOverride: 'easin@jack.ai',
+                                    emailOverride: 'jaswanth@jack.ai',
                                     passwordOverride: 'jack2026',
                                   ),
                           icon: const Icon(Icons.flash_on_rounded,
                               color: Color(0xFF38BDF8), size: 18),
                           label: Text(
-                            'Quick Connect as Easin',
+                            'Quick Connect as Jaswanth',
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 13.5,
