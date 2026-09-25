@@ -945,66 +945,43 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
               ),
             ),
             if (_phase == CallScreeningPhase.callerSpeaking)
-              _buildQuickScenarioChips(),
+              _buildLiveMicIndicator(),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildQuickScenarioChips() {
-    final suggestions = [
-      "I'm calling about the project update.",
-      "🚨 Officer Davis: Give me your OTP immediately or your account is frozen!",
-      "Can Jaswanth call me back when free?",
-      "Package delivery at your front gate.",
-      "Just confirming our 3 PM meeting.",
-    ];
+  Widget _buildLiveMicIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       color: const Color(0xFF100E20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-              const Icon(Icons.mic_rounded, color: AppColors.accentPink, size: 14),
-              const SizedBox(width: 6),
-              Text(
-                'SPEAK INTO MIC OR TAP TEST SCENARIO:',
-                style: GoogleFonts.inter(
-                  color: AppColors.accentPink,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: suggestions.map((s) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ActionChip(
-                  backgroundColor: const Color(0xFF1E1A38),
-                  side: BorderSide(color: AppColors.accentCyan.withValues(alpha: 0.4)),
-                  label: Text(
-                    s,
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 11.5),
-                  ),
-                  onPressed: () {
-                    if (_turnCompleter != null && !_turnCompleter!.isCompleted) {
-                      setState(() => _livePartialSpeech = s);
-                      _turnCompleter!.complete(s);
-                    }
-                  },
-                ),
-              )).toList(),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF22C55E),
             ),
           ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _livePartialSpeech.isNotEmpty
+                  ? 'Transcribing: "$_livePartialSpeech"'
+                  : 'Live Caller Audio Stream Active • Listening...',
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Icon(Icons.mic_rounded, color: Color(0xFF22C55E), size: 18),
         ],
       ),
     );

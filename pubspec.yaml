@@ -52,6 +52,9 @@ dependencies:
   flutter_accessibility_service: ^1.2.0
   flutter_svg: ^2.0.17
   flutter_overlay_window: ^0.5.0
+  flutter_markdown: ^0.7.7+1
+  cached_network_image: ^3.4.1
+  flutter_callkit_incoming: ^3.1.6
 
 dev_dependencies:
   flutter_test:

@@ -14,6 +14,7 @@ import 'services/telephony/jack_call_screener_service.dart' as import_call_servi
 import 'services/voice/jack_male_voice_helper.dart';
 import 'services/tasks/jack_task_service.dart';
 import 'services/immortal/jack_immortal_service.dart';
+import 'services/voice/jack_wake_word_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,6 +81,11 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
 
     // Initialize Jack Immortal 24/7 Background Persistence & Daemon
     ref.read(jackImmortalProvider);
+
+    // Global Hands-free Background Wake-Word Engine ("Hey Jack" / "Jack")
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(jackWakeWordProvider.notifier).startMonitoring();
+    });
 
     // Hide overlay when app starts in foreground
     try {

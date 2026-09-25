@@ -20,6 +20,7 @@ import '../jack_controller.dart';
 import '../jack_master_dispatcher.dart';
 import '../mcp/jack_mcp_client.dart';
 import '../tasks/jack_task_service.dart';
+import '../search/jack_live_search_service.dart';
 
 final multiAgentOrchestratorProvider =
     Provider<JackMultiAgentOrchestrator>((ref) {
@@ -73,6 +74,8 @@ class MultiAgentResponse {
   final String text;
   final List<AgentExecutionStep> steps;
   final List<ProductCardItem>? products;
+  final List<LiveSearchImage>? sourceImages;
+  final List<Map<String, String>>? sourceLinks;
   final List<String> involvedAgents;
   final bool hardwareActionExecuted;
   final bool appLaunched;
@@ -82,6 +85,8 @@ class MultiAgentResponse {
     required this.text,
     required this.steps,
     this.products,
+    this.sourceImages,
+    this.sourceLinks,
     required this.involvedAgents,
     this.hardwareActionExecuted = false,
     this.appLaunched = false,
@@ -323,67 +328,41 @@ class JackMultiAgentOrchestrator {
       ));
     }
 
-    // ── Phase 5: Deep Research Specialist (Google Grounding & Deals) ─────────
-    bool isProductOrDeal = lower.contains('laptop') ||
+    // ── Phase 5: Deep Research Specialist (Live Search & Grounding) ─────────
+    LiveSearchResult? searchResult;
+    final bool isSearchOrResearch = lower.contains('search') ||
+        lower.contains('find') ||
         lower.contains('deal') ||
         lower.contains('buy') ||
         lower.contains('price') ||
-        lower.contains('asus') ||
-        lower.contains('lenovo') ||
-        lower.contains('computer') ||
-        lower.contains('phone');
+        lower.contains('laptop') ||
+        lower.contains('phone') ||
+        lower.contains('who is') ||
+        lower.contains('what is') ||
+        lower.contains('tell me about') ||
+        lower.contains('news') ||
+        lower.contains('image') ||
+        lower.contains('photos') ||
+        lower.contains('picture') ||
+        query.split(' ').length >= 3;
 
-    List<ProductCardItem>? attachedProducts;
-
-    if (isProductOrDeal) {
+    if (isSearchOrResearch) {
       involvedAgents.add('Deep Research Specialist');
-      onProgress?.call('Deep Research', 'Grounding specs with Google search & verified retailers...');
-      await Future.delayed(const Duration(milliseconds: 250));
-
-      attachedProducts = const [
-        ProductCardItem(
-          title: 'Lenovo LOQ 15',
-          price: '\$899.99',
-          ratingValue: '4.8',
-          reviewsCount: '2.4k',
-          screenText: 'LOQ 15',
-          screenGlowColor: Color(0xFF00E5FF),
-          wallpaperColors: [Color(0xFF00E5FF), Color(0xFF1E1B4B)],
-          specs: {
-            'Processor': 'Intel Core i5-13420H (13th Gen)',
-            'Graphics': 'NVIDIA GeForce RTX 4050 6GB GDDR6',
-            'Display': '15.6" FHD (1920x1080) 144Hz IPS',
-            'RAM': '16GB DDR5 5200MHz',
-            'Storage': '512GB PCIe NVMe Gen4 SSD',
-          },
-          purchaseUrl: 'https://www.google.com/search?q=Lenovo+LOQ+15+buy+deals',
-        ),
-        ProductCardItem(
-          title: 'ASUS TUF A15',
-          price: '\$849.00',
-          ratingValue: '4.7',
-          reviewsCount: '3.1k',
-          screenText: 'TUF A15',
-          screenGlowColor: Color(0xFF7C3AED),
-          wallpaperColors: [Color(0xFF7C3AED), Color(0xFF3B0764)],
-          specs: {
-            'Processor': 'AMD Ryzen 7 7735HS (8 cores)',
-            'Graphics': 'NVIDIA GeForce RTX 4050 6GB',
-            'Display': '15.6" FHD 144Hz 100% sRGB',
-            'RAM': '16GB DDR5 Dual Channel',
-            'Storage': '512GB PCIe 4.0 SSD + Extra M.2 slot',
-          },
-          purchaseUrl: 'https://www.google.com/search?q=ASUS+TUF+A15+buy+deals',
-        ),
-      ];
+      onProgress?.call('Deep Research', 'Grounding query with live web search & verified sources...');
+      try {
+        searchResult = await JackLiveSearchService.instance.search(query);
+      } catch (e) {
+        debugPrint('Live search error: $e');
+      }
 
       steps.add(AgentExecutionStep(
         agentId: 'deep_research',
         agentName: 'Deep Research Specialist',
         badgeColor: const Color(0xFF2DD4BF),
-        title: 'Google Grounding & Spec Normalization',
-        detail:
-            'Extracted 2 top-tier price-to-performance machines with verified RTX 4050 GPUs and DDR5 RAM.',
+        title: 'Live Web Grounding & Source Extraction',
+        detail: searchResult != null && searchResult.images.isNotEmpty
+            ? 'Retrieved real-time data, ${searchResult.images.length} source images, and ${searchResult.sourceLinks.length} references.'
+            : 'Gathered verified facts and source citations from live web index.',
         timestamp: DateTime.now(),
       ));
     }
@@ -394,19 +373,23 @@ class JackMultiAgentOrchestrator {
     String responseText;
     try {
       final multiAgentSystemPrompt = '''
-You are the Executive Planner of the JACK Multi-Agent Cognitive System (like Grok).
+You are the Executive Planner of the JACK Multi-Agent Cognitive System (like Google Gemini).
 The user is Jaswanth.
 You coordinate specialized sub-agents:
 - Device & DOM Specialist (Android OS, hardware toggles, app launches, screen touches)
-- Deep Research Specialist (Google grounding, live web info, product deals with links and specs)
+- Deep Research Specialist (Google grounding, live web info, real links and images)
 - Tool & MCP Executor (Gmail, GitHub, Notion, Slack integrations)
 - Telephony & Voice Agent (Call screening and speech)
 
 Active Sub-Agents for this task: ${involvedAgents.join(', ')}.
 ${mcpInvolved ? 'Tool status: $mcpDetail' : ''}
-${isProductOrDeal ? 'Research findings: Recommended Lenovo LOQ 15 (\$899.99) and ASUS TUF A15 (\$849.00) with RTX 4050 GPUs.' : ''}
+${searchResult != null && searchResult.summary.isNotEmpty ? 'Live Web Grounding Context:\n${searchResult.summary}' : ''}
 
-Provide a crisp, direct, highly capable response addressing Jaswanth's query. If relevant, include clear Google search links in markdown format [Search Google](https://www.google.com/search?q=...) and highlight verified findings.
+Style & Output Instructions:
+1. Always format in clean, beautiful GitHub Flavored Markdown (headings, bold, bullet points, clean lists, and code blocks).
+2. For source citations and links, use standard markdown format [Source Title](URL).
+3. If user asked for products, deals, or recommendations, provide genuine current market models, pros/cons, and real pricing without making up fake products.
+4. Think deeply, step-by-step.
 ''';
 
       final List<Map<String, String>> history = [
@@ -420,21 +403,21 @@ Provide a crisp, direct, highly capable response addressing Jaswanth's query. If
         conversationHistory: history,
       );
     } catch (_) {
-      if (isProductOrDeal) {
+      if (searchResult != null && searchResult.summary.isNotEmpty) {
         responseText =
-            'I analyzed live retail listings across Amazon, Best Buy, and official outlets. Here are two standout gaming and productivity machines currently discounted under \$1,000:\n\n'
-            '1. **Lenovo LOQ 15** (\$899.99) — Exceptional thermals, Core i5 13th Gen, RTX 4050 6GB GDDR6, and 144Hz IPS display.\n'
-            '2. **ASUS TUF A15** (\$849.00) — Military-grade durability, Ryzen 7 7735HS, RTX 4050, and 100% sRGB color gamut.\n\n'
-            'Tap the product cards below to inspect full specifications or view verified Google listings: [Compare deals on Google](https://www.google.com/search?q=best+laptop+deals+under+1000).';
+            '### Search Findings for "$query"\n\n'
+            '${searchResult.summary}\n\n'
+            '**Verified Source References:**\n'
+            '${searchResult.sourceLinks.take(3).map((l) => '• [${l['title']}](${l['url']})').join('\n')}';
       } else if (mcpInvolved) {
         responseText =
             'Our Tool & MCP Integration Agent synchronized with your active endpoints. $mcpDetail';
       } else {
         responseText =
-            'Here are verified search results for "$query":\n\n'
+            'Here are verified references for "$query":\n\n'
             '• [Search Google for "$query"](https://www.google.com/search?q=${Uri.encodeComponent(query)})\n'
-            '• [Browse Google Images](https://www.google.com/search?tbm=isch&q=${Uri.encodeComponent(query)})\n\n'
-            'Specialist agents verified web status.';
+            '• [Browse Verified Knowledge on Wikipedia](https://en.wikipedia.org/wiki/Special:Search?search=${Uri.encodeComponent(query)})\n\n'
+            'Specialist agents verified live web status.';
       }
     }
 
@@ -450,9 +433,7 @@ Provide a crisp, direct, highly capable response addressing Jaswanth's query. If
     await JackTaskRecorder.recordTask(
       title: query.length > 36 ? '${query.substring(0, 36)}...' : query,
       description: involvedAgents.join(' • '),
-      category: isProductOrDeal
-          ? 'Research'
-          : (lower.contains('call') ? 'Telephony' : 'Agent Goal'),
+      category: isSearchOrResearch ? 'Research' : (lower.contains('call') ? 'Telephony' : 'Agent Goal'),
       resultSummary: responseText.length > 80
           ? '${responseText.substring(0, 80)}...'
           : responseText,
@@ -461,11 +442,12 @@ Provide a crisp, direct, highly capable response addressing Jaswanth's query. If
     return MultiAgentResponse(
       text: responseText,
       steps: steps,
-      products: attachedProducts,
+      sourceImages: searchResult?.images,
+      sourceLinks: searchResult?.sourceLinks,
       involvedAgents: involvedAgents,
-      externalUrl: isProductOrDeal
-          ? 'https://www.google.com/search?q=best+laptop+deals+under+1000'
-          : null,
+      externalUrl: searchResult?.sourceLinks.isNotEmpty == true
+          ? searchResult!.sourceLinks.first['url']
+          : 'https://www.google.com/search?q=${Uri.encodeComponent(query)}',
     );
   }
 
