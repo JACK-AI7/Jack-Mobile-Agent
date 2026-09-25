@@ -268,6 +268,10 @@ class JackMultiTenantTelephonyService {
     });
   }
 
+  void appendTranscript(String speaker, String message) {
+    _appendTranscript(speaker, message);
+  }
+
   void _appendTranscript(String speaker, String message) {
     final entry = TranscriptEntry(
       speaker: speaker,
