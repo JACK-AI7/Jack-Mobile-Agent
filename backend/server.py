@@ -29,7 +29,7 @@ from fastapi import (
 )
 from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 import uvicorn
 import jwt
 from passlib.context import CryptContext
@@ -166,14 +166,14 @@ async def startup_event():
 
 # ── Pydantic Request Schemas ──────────────────────────────────────────────────
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     full_name: Optional[str] = None
     personal_sim_number: str # E.164, e.g. +14158920199
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
