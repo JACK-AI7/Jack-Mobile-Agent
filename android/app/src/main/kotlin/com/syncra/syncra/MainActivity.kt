@@ -294,6 +294,9 @@ class MainActivity : FlutterActivity() {
                                 val tm = getSystemService(TELECOM_SERVICE) as android.telecom.TelecomManager
                                 if (checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                     tm.acceptRingingCall()
+                                    val am = getSystemService(AUDIO_SERVICE) as AudioManager
+                                    am.mode = AudioManager.MODE_IN_COMMUNICATION
+                                    am.isSpeakerphoneOn = true
                                     result.success(true)
                                     return@setMethodCallHandler
                                 }
@@ -444,8 +447,52 @@ class MainActivity : FlutterActivity() {
                     "setSpeakerphone" -> {
                         val enable = call.argument<Boolean>("enable") ?: false
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
-                        am.isSpeakerphoneOn = enable
-                        result.success(true)
+                        try {
+                            if (enable) {
+                                am.mode = AudioManager.MODE_IN_COMMUNICATION
+                                am.isSpeakerphoneOn = true
+                            } else {
+                                am.isSpeakerphoneOn = false
+                                am.mode = AudioManager.MODE_NORMAL
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
+                    "getDeviceInfo" -> {
+                        try {
+                            val info = mapOf(
+                                "manufacturer" to Build.MANUFACTURER,
+                                "model" to Build.MODEL,
+                                "brand" to Build.BRAND,
+                                "device" to Build.DEVICE,
+                                "product" to Build.PRODUCT,
+                                "androidVersion" to Build.VERSION.RELEASE,
+                                "sdkInt" to Build.VERSION.SDK_INT
+                            )
+                            result.success(info)
+                        } catch (e: Exception) {
+                            result.success(emptyMap<String, Any>())
+                        }
+                    }
+                    "getSecurityDetails" -> {
+                        try {
+                            val isA11y = isAccessibilityServiceEnabled()
+                            val isNotif = isNotificationListenerEnabled()
+                            val isDev = Settings.Global.getInt(contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0
+                            val isAdb = Settings.Global.getInt(contentResolver, Settings.Global.ADB_ENABLED, 0) != 0
+                            val isInstallUnknown = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) packageManager.canRequestPackageInstalls() else false
+                            result.success(mapOf(
+                                "accessibilityEnabled" to isA11y,
+                                "notificationListenerEnabled" to isNotif,
+                                "developerOptionsEnabled" to isDev,
+                                "adbEnabled" to isAdb,
+                                "unknownSourcesEnabled" to isInstallUnknown
+                            ))
+                        } catch (e: Exception) {
+                            result.success(emptyMap<String, Any>())
+                        }
                     }
                     "setBrightness" -> {
                         // Note: requires WRITE_SETTINGS permission (user must grant in settings)

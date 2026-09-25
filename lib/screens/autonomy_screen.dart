@@ -1,7 +1,4 @@
-// lib/screens/autonomy_screen.dart
-//
-// 03. Agent Autonomy — Your agent's capability overview
-// ─────────────────────────────────────────────────────────────────────────────
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -11,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/jack_permission_service.dart';
+import '../services/api/jack_storage.dart';
+import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
 
 class AutonomyScreen extends ConsumerStatefulWidget {
@@ -31,11 +30,43 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
   ];
 
   int _autonomyScore = 58;
+  List<String> _memories = [];
+  bool _autonomousExecution = true;
+  bool _backgroundKeepAlive = true;
 
   @override
   void initState() {
     super.initState();
     _calculateRealScore();
+    _loadDeviceDetails();
+  }
+
+  Future<void> _loadDeviceDetails() async {
+    try {
+      final dev = await JackStorage.getDeviceInfo();
+      final name = await JackStorage.read(key: 'jack_user_name') ?? 'Jaswanth';
+      final memRaw = await JackStorage.read(key: 'jack_episodic_memories');
+      List<String> mems = [];
+      if (memRaw != null && memRaw.isNotEmpty) {
+        try {
+          final List<dynamic> decoded = jsonDecode(memRaw);
+          mems = decoded.map((e) => e.toString()).toList();
+        } catch (_) {}
+      }
+      if (mems.isEmpty) {
+        mems = [
+          'User: $name',
+          'Device: ${dev['manufacturer'] ?? 'Android'} ${dev['model'] ?? 'Device'} (Android ${dev['androidVersion'] ?? '14'})',
+          'Voice: British Baritone (Pitch 0.82)',
+          'Security: Shield Active (Zero-Trust Guard)',
+        ];
+      }
+      if (mounted) {
+        setState(() {
+          _memories = mems;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _calculateRealScore() async {
@@ -240,110 +271,350 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
                   ),
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 16),
 
-                // ── Dotted Circular Gauge (48% Autonomy score) ────────────
-                Center(
-                  child: SizedBox(
-                    width: 230,
-                    height: 230,
-                    child: CustomPaint(
-                      painter: _DottedGaugePainter(
-                        percentage: _autonomyScore / 100.0,
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '$_autonomyScore%',
-                              style: GoogleFonts.cormorantGaramond(
-                                fontSize: 46,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Autonomy\nscore',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white70,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // ── Informational Card: "Jack is learning and getting..." ─
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF141320).withValues(alpha: 0.88),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            // Circular icon badge
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFF222035),
-                              ),
-                              child: const Icon(
-                                Icons.smart_toy_rounded,
-                                color: Colors.white70,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                'Jack is learning and getting\nmore capable every day.',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white38,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                // ── Interactive Dynamic Tab Body
+                Expanded(
+                  child: _buildActiveTabContent(),
                 ),
 
                 const SizedBox(height: 14),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveTabContent() {
+    switch (_selectedTab) {
+      case 1:
+        return _buildPluginsTab();
+      case 2:
+        return _buildSkillsTab();
+      case 3:
+        return _buildMemoryTab();
+      case 4:
+        return _buildSettingsTab();
+      case 0:
+      default:
+        return _buildOverviewTab();
+    }
+  }
+
+  Widget _buildOverviewTab() {
+    return Column(
+      children: [
+        const Spacer(),
+
+        // ── Dotted Circular Gauge (Real Autonomy score)
+        Center(
+          child: SizedBox(
+            width: 220,
+            height: 220,
+            child: CustomPaint(
+              painter: _DottedGaugePainter(
+                percentage: _autonomyScore / 100.0,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$_autonomyScore%',
+                      style: GoogleFonts.cormorantGaramond(
+                        fontSize: 46,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Autonomy\nscore',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const Spacer(),
+
+        // ── Informational Card: "Jack is learning and getting..."
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: GestureDetector(
+            onTap: () => context.go('/agent-builder'),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141320).withValues(alpha: 0.88),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFF222035),
+                        ),
+                        child: const Icon(
+                          Icons.smart_toy_rounded,
+                          color: Colors.white70,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          'Jack is learning and getting\nmore capable every day.',
+                          style: GoogleFonts.inter(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white38,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPluginsTab() {
+    final plugins = [
+      {'name': 'Groq Cloud Engine', 'status': 'Connected', 'color': const Color(0xFF10B981), 'icon': Icons.bolt_rounded},
+      {'name': 'MCP Handshake Endpoint', 'status': 'Configured', 'color': const Color(0xFF00E5FF), 'icon': Icons.hub_rounded},
+      {'name': 'Shizuku Android Daemon', 'status': 'Active', 'color': const Color(0xFF8B5CF6), 'icon': Icons.security_rounded},
+      {'name': 'Google Grounding Protocol', 'status': 'Live', 'color': const Color(0xFFF59E0B), 'icon': Icons.search_rounded},
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Column(
+        children: [
+          ...plugins.map((p) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF131224),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(p['icon'] as IconData, color: p['color'] as Color, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        p['name'] as String,
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (p['color'] as Color).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        p['status'] as String,
+                        style: GoogleFonts.inter(color: p['color'] as Color, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: () => context.go('/agent-builder'),
+              icon: const Icon(Icons.settings_suggest_rounded, color: AppColors.accentCyan, size: 18),
+              label: Text('Configure Plugins in Agent Builder', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkillsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Column(
+        children: [
+          _skillCard('AI Call Screener', 'Answers and converses with callers aloud', Icons.phone_callback_rounded, const Color(0xFF00E5FF), () {
+            context.push('/calls');
+          }),
+          _skillCard('Security Shield', 'Blocks scams, OTP fraud, and phishing links', Icons.shield_rounded, const Color(0xFF22C55E), () {
+            context.push('/security');
+          }),
+          _skillCard('DOM Touch Automation', 'Autonomous swipes, scrolls, and clicks', Icons.touch_app_rounded, const Color(0xFFA855F7), () {
+            context.go('/agent-builder');
+          }),
+          _skillCard('British Baritone Voice', 'Natural high-speed male speech synthesis', Icons.mic_rounded, const Color(0xFFEC4899), () {
+            context.go('/agent-builder');
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _skillCard(String title, String desc, IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131224),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.inter(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text(desc, style: GoogleFonts.inter(color: Colors.white54, fontSize: 11.5)),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14),
+            onPressed: onTap,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemoryTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Active Memory Facts (${_memories.length})', style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          ..._memories.map((m) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF131224),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lens_blur_rounded, color: Color(0xFFF43F5E), size: 14),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(m, style: GoogleFonts.inter(color: Colors.white, fontSize: 12.5))),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: () => context.go('/agent-builder'),
+              icon: const Icon(Icons.edit_note_rounded, size: 18),
+              label: Text('Open Memory Bank in Builder', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF43F5E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Column(
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Autonomous Execution', style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+            subtitle: Text('Allows Jack to complete multi-step goals without prompting', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
+            value: _autonomousExecution,
+            activeTrackColor: AppColors.accentCyan,
+            onChanged: (v) => setState(() => _autonomousExecution = v),
+          ),
+          const Divider(color: Colors.white10),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('24/7 Background Persistence', style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+            subtitle: Text('Keeps Jack active in background for wake word and calls', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
+            value: _backgroundKeepAlive,
+            activeTrackColor: const Color(0xFF22C55E),
+            onChanged: (v) => setState(() => _backgroundKeepAlive = v),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                JackPermissionService.requestAll(context);
+                _calculateRealScore();
+              },
+              icon: const Icon(Icons.verified_user_rounded, color: Color(0xFF22C55E), size: 18),
+              label: Text('Check & Grant All System Permissions', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: const Color(0xFF22C55E).withValues(alpha: 0.4)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
             ),
           ),
         ],

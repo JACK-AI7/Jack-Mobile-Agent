@@ -41,14 +41,19 @@ class JackAuthNotifier extends StateNotifier<JackAuthState> {
     }
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String email, String password, [String? customName]) async {
     state = JackAuthState.AUTHENTICATING;
     try {
       await _authClient.login(email, password);
+      if (customName != null && customName.trim().isNotEmpty) {
+        await JackStorage.write(key: 'jack_user_name', value: customName.trim());
+      }
     } catch (_) {
       // Guaranteed offline session fallback
       final prefix = email.split('@').first.trim();
-      final name = prefix.isNotEmpty ? (prefix[0].toUpperCase() + prefix.substring(1)) : 'Jaswanth';
+      final name = (customName != null && customName.trim().isNotEmpty)
+          ? customName.trim()
+          : (prefix.isNotEmpty ? (prefix[0].toUpperCase() + prefix.substring(1)) : 'Jaswanth');
       await JackStorage.write(key: 'jack_access_token', value: 'jack_session_${DateTime.now().millisecondsSinceEpoch}');
       await JackStorage.write(key: 'jack_user_name', value: name);
     }

@@ -51,8 +51,6 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
   Animation<double>? _pitchAnim;
   Animation<double>? _yawAnim;
 
-  late AnimationController _saccadeCtrl;
-  Animation<Offset>? _saccadeAnim;
   Timer? _saccadeTimer;
   final Random _rng = Random();
 
@@ -79,11 +77,6 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 700),
     );
 
-    _saccadeCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 380),
-    );
-
     _breatheAnim = Tween<double>(begin: 0.96, end: 1.02).animate(
       CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut),
     );
@@ -98,31 +91,16 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
       if (!mounted) return;
       if (_springCtrl.isAnimating) return;
 
-      // Only perform natural saccades when idle
+      // Natural subtle glances when idle
       final maxOffset = widget.size * 0.055;
       final shouldGlance = _rng.nextBool();
-      final target = shouldGlance
-          ? Offset(
-              (_rng.nextDouble() * 2 - 1) * maxOffset * 0.7,
-              (_rng.nextDouble() * 1.5 - 0.3) * maxOffset * 0.6,
-            )
-          : Offset.zero;
-
-      _saccadeAnim = Tween<Offset>(
-        begin: Offset(_eyeOffsetX, _eyeOffsetY),
-        end: target,
-      ).animate(CurvedAnimation(parent: _saccadeCtrl, curve: Curves.easeInOutCubic));
-
-      _saccadeCtrl.reset();
-      _saccadeCtrl.forward();
-      _saccadeCtrl.addListener(() {
-        if (_saccadeAnim != null && mounted) {
-          setState(() {
-            _eyeOffsetX = _saccadeAnim!.value.dx;
-            _eyeOffsetY = _saccadeAnim!.value.dy;
-          });
-        }
-      });
+      if (shouldGlance) {
+        _targetOffsetX = (_rng.nextDouble() * 2 - 1) * maxOffset * 0.7;
+        _targetOffsetY = (_rng.nextDouble() * 1.5 - 0.3) * maxOffset * 0.6;
+      } else {
+        _targetOffsetX = 0.0;
+        _targetOffsetY = 0.0;
+      }
     });
   }
 
@@ -130,15 +108,10 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
     try {
       _accelSub = accelerometerEventStream().listen((AccelerometerEvent event) {
         if (!mounted) return;
-        // Sensitivity scaled with size
+        // Sensitivity scaled with size - no setState here to prevent 100Hz UI jank
         final maxOffset = widget.size * 0.035;
         _targetOffsetX = -event.x.clamp(-4.0, 4.0) * (maxOffset / 4.0);
         _targetOffsetY = (event.y - 5.0).clamp(-4.0, 4.0) * (maxOffset / 4.0);
-
-        setState(() {
-          _eyeOffsetX += (_targetOffsetX - _eyeOffsetX) * 0.15;
-          _eyeOffsetY += (_targetOffsetY - _eyeOffsetY) * 0.15;
-        });
       });
     } catch (e) {
       debugPrint('Sensors not available on this device: $e');
@@ -190,7 +163,6 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
   void dispose() {
     _accelSub?.cancel();
     _saccadeTimer?.cancel();
-    _saccadeCtrl.dispose();
     _breatheCtrl.dispose();
     _rotateCtrl.dispose();
     _pulseCtrl.dispose();
@@ -212,6 +184,12 @@ class _JackOrbState extends State<JackOrb> with TickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: Listenable.merge([_breatheCtrl, _rotateCtrl, _pulseCtrl, _springCtrl]),
         builder: (context, child) {
+          // Smoothly interpolate eye tracking towards target on each display refresh frame
+          if (!_springCtrl.isAnimating && _pitch == 0.0 && _yaw == 0.0) {
+            _eyeOffsetX += (_targetOffsetX - _eyeOffsetX) * 0.12;
+            _eyeOffsetY += (_targetOffsetY - _eyeOffsetY) * 0.12;
+          }
+
           // Orb circle stays rock-solid when idle; 3D perspective only applies during active interaction
           final scale = widget.state == OrbState.idle ? 1.0 : _breatheAnim.value;
 

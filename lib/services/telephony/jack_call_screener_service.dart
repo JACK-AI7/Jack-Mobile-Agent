@@ -63,6 +63,7 @@ class JackCallScreenerService {
     String callerName = 'Sarah Jenkins',
     String phoneNumber = '+1 (415) 892-0199',
     String? scenarioPrompt,
+    bool autoAnswer = true,
   }) {
     final ctx = navigatorKey?.currentContext;
     if (ctx != null && globalRef != null) {
@@ -72,6 +73,7 @@ class JackCallScreenerService {
         callerName: callerName,
         phoneNumber: phoneNumber,
         scenarioPrompt: scenarioPrompt,
+        autoAnswer: autoAnswer,
       );
     }
   }
@@ -117,6 +119,7 @@ class JackCallScreenerService {
     String callerName = 'Sarah Jenkins',
     String phoneNumber = '+1 (415) 892-0199',
     String? scenarioPrompt,
+    bool autoAnswer = true,
   }) {
     HapticFeedback.heavyImpact();
     _initAudio();
@@ -132,6 +135,7 @@ class JackCallScreenerService {
         phoneNumber: phoneNumber,
         scenarioPrompt: scenarioPrompt,
         ref: ref,
+        autoAnswer: autoAnswer,
       ),
     );
   }
@@ -142,12 +146,14 @@ class _JackCallScreeningModal extends StatefulWidget {
   final String phoneNumber;
   final String? scenarioPrompt;
   final WidgetRef ref;
+  final bool autoAnswer;
 
   const _JackCallScreeningModal({
     required this.callerName,
     required this.phoneNumber,
     this.scenarioPrompt,
     required this.ref,
+    this.autoAnswer = true,
   });
 
   @override
@@ -186,6 +192,14 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
     // Initial haptic ring cadence
     _simulateRinging();
     _initModalAudio();
+
+    if (widget.autoAnswer) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) _jackAnswerCall();
+        });
+      });
+    }
   }
 
   Future<void> _initModalAudio() async {
@@ -282,8 +296,10 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
     });
     _startDurationTimer();
 
-    // Enable speakerphone so incoming and outgoing voice are crystal clear
+    // Answer the physical call and enable speakerphone so speech is loud and clear
     try {
+      const MethodChannel('com.jack.agent/accessibility')
+          .invokeMethod('answerCall');
       const MethodChannel('com.jack.agent/accessibility')
           .invokeMethod('setSpeakerphone', {'enable': true});
     } catch (_) {}
@@ -940,7 +956,7 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
     final suggestions = [
       "I'm calling about the project update.",
       "🚨 Officer Davis: Give me your OTP immediately or your account is frozen!",
-      "Can Easin call me back when free?",
+      "Can Jaswanth call me back when free?",
       "Package delivery at your front gate.",
       "Just confirming our 3 PM meeting.",
     ];

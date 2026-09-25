@@ -6,6 +6,7 @@
 // credentials and session state never fail across emulator, mobile & web.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,5 +52,21 @@ class JackStorage {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(key);
     } catch (_) {}
+  }
+
+  static Future<Map<String, dynamic>> getDeviceInfo() async {
+    try {
+      const channel = MethodChannel('com.jack.agent/accessibility');
+      final res = await channel.invokeMethod('getDeviceInfo');
+      if (res is Map) {
+        return Map<String, dynamic>.from(res);
+      }
+    } catch (_) {}
+    return {
+      'manufacturer': 'Android',
+      'model': 'Device',
+      'brand': 'Generic',
+      'androidVersion': '14',
+    };
   }
 }

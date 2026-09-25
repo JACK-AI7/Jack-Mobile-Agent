@@ -274,10 +274,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
 
+    final history = _messages.take(12).map((m) => {
+      'role': m.isUser ? 'user' : 'assistant',
+      'content': m.text,
+    }).toList();
+
     try {
       final multiAgent = ref.read(multiAgentOrchestratorProvider);
       final result = await multiAgent.executeMultiAgentGoal(
         query: query,
+        conversationHistory: history,
         onProgress: (agentName, status) {
           if (mounted) {
             setState(() {
@@ -332,6 +338,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ));
         });
         _scrollToBottom();
+
+        // Voice output for continuous conversational loop
+        try {
+          final clean = result.text
+              .replaceAll(RegExp(r'\[.*?\]\(.*?\)'), '')
+              .replaceAll('*', '')
+              .trim();
+          final spokenSnippet =
+              clean.length > 200 ? '${clean.substring(0, 200)}...' : clean;
+          await _tts.speak(spokenSnippet);
+        } catch (_) {}
       }
     } catch (e) {
       if (mounted) {

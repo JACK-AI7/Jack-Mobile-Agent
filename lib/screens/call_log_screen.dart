@@ -51,7 +51,7 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
           startTime: DateTime.now().subtract(const Duration(minutes: 42)),
           duration: const Duration(seconds: 48),
           aiSummary:
-              'Caller: "Hi Easin, checking if you reviewed the updated architecture proposal."\nJack: "Hello Sarah. Easin is currently occupied in deep work. I have logged your message and he will review the document shortly."',
+              'Caller: "Hi Jaswanth, checking if you reviewed the updated architecture proposal."\nJack: "Hello Sarah. Jaswanth is currently occupied in deep work. I have logged your message and he will review the document shortly."',
           jackActions: [
             'Screened call autonomously via British Male AI voice',
             'Captured message regarding architecture proposal',

@@ -65,11 +65,21 @@ class JackCallReceiver : BroadcastReceiver() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val tm = context.getSystemService(Context.TELECOM_SERVICE) as android.telecom.TelecomManager
                     if (context.checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                        try { tm.acceptRingingCall() } catch (e: Exception) { e.printStackTrace() }
+                        try {
+                            tm.acceptRingingCall()
+                            val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                            am.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+                            am.isSpeakerphoneOn = true
+                        } catch (e: Exception) { e.printStackTrace() }
                     }
                 }
             }
             TelephonyManager.CALL_STATE_OFFHOOK -> {
+                try {
+                    val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                    am.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+                    am.isSpeakerphoneOn = true
+                } catch (_: Exception) {}
                 val contactName = resolveContactName(context, incomingNumber.ifEmpty { number })
                 sendEvent(mapOf(
                     "event"       to "answered",
@@ -78,6 +88,11 @@ class JackCallReceiver : BroadcastReceiver() {
                 ))
             }
             TelephonyManager.CALL_STATE_IDLE -> {
+                try {
+                    val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                    am.isSpeakerphoneOn = false
+                    am.mode = android.media.AudioManager.MODE_NORMAL
+                } catch (_: Exception) {}
                 val contactName = resolveContactName(context, incomingNumber.ifEmpty { number })
                 sendEvent(mapOf(
                     "event"       to "ended",

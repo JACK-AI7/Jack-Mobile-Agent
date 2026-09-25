@@ -69,12 +69,7 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
 
   // Real interactive configuration state for memory
   bool _longTermMemoryEnabled = true;
-  List<String> _memories = [
-    'User Name: Easin',
-    'Preferred Voice: British Baritone (Pitch 0.82)',
-    'Device: Android 14 Pro Mobile',
-    'Primary Task: Full-Stack Agent Automation',
-  ];
+  List<String> _memories = [];
   final TextEditingController _newMemoryCtrl = TextEditingController();
 
   // Knowledge state (live persisted)
@@ -214,9 +209,23 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
       if (prompt != null) _customPromptCtrl.text = prompt;
 
       final memsRaw = await JackStorage.read(key: 'jack_episodic_memories');
-      if (memsRaw != null && memsRaw.isNotEmpty) {
+      if (memsRaw != null && memsRaw.isNotEmpty && !memsRaw.contains('Easin') && !memsRaw.contains('Android 14 Pro')) {
         final List<dynamic> decoded = jsonDecode(memsRaw);
         _memories = decoded.map((e) => e.toString()).toList();
+      } else {
+        final userName = await JackStorage.read(key: 'jack_user_name') ?? 'Jaswanth';
+        final dev = await JackStorage.getDeviceInfo();
+        final devName = '${dev['manufacturer'] ?? 'Android'} ${dev['model'] ?? 'Device'} (Android ${dev['androidVersion'] ?? '14'})';
+        _memories = [
+          'User Name: $userName',
+          'Preferred Voice: British Baritone (Pitch 0.82)',
+          'Device: $devName',
+          'Primary Task: Autonomous Mobile Assistant & Device Guard',
+        ];
+        await JackStorage.write(
+          key: 'jack_episodic_memories',
+          value: jsonEncode(_memories),
+        );
       }
 
       final groqKey = await DirectGroqService().getApiKey();

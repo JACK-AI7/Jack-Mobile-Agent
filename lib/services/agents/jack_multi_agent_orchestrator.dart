@@ -157,6 +157,7 @@ class JackMultiAgentOrchestrator {
   /// Core Multi-Agent Goal Execution Pipeline
   Future<MultiAgentResponse> executeMultiAgentGoal({
     required String query,
+    List<Map<String, String>>? conversationHistory,
     Function(String agentName, String status)? onProgress,
   }) async {
     final List<AgentExecutionStep> steps = [];
@@ -408,11 +409,15 @@ ${isProductOrDeal ? 'Research findings: Recommended Lenovo LOQ 15 (\$899.99) and
 Provide a crisp, direct, highly capable response addressing Jaswanth's query. If relevant, include clear Google search links in markdown format [Search Google](https://www.google.com/search?q=...) and highlight verified findings.
 ''';
 
+      final List<Map<String, String>> history = [
+        {'role': 'system', 'content': multiAgentSystemPrompt}
+      ];
+      if (conversationHistory != null && conversationHistory.isNotEmpty) {
+        history.addAll(conversationHistory);
+      }
       responseText = await _groqService.generate(
         prompt: query,
-        conversationHistory: [
-          {'role': 'system', 'content': multiAgentSystemPrompt}
-        ],
+        conversationHistory: history,
       );
     } catch (_) {
       if (isProductOrDeal) {

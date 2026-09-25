@@ -105,13 +105,14 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
     _callSub = _callChannel.receiveBroadcastStream().listen((event) {
       if (event is Map) {
         final evType = event['event'];
-        if (evType == 'incoming') {
+        if (evType == 'incoming' || evType == 'answered') {
           if (!mounted) return;
           import_call_service.JackCallScreenerService.instance.triggerIncomingCall(
             context,
             ref,
             callerName: event['contactName']?.toString() ?? 'Unknown',
             phoneNumber: event['number']?.toString() ?? '',
+            autoAnswer: true,
           );
         }
       }

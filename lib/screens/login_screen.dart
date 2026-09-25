@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jack_auth_state.dart';
+import '../services/api/jack_storage.dart';
 import '../theme/app_colors.dart';
 import '../widgets/jack_orb.dart';
 import '../widgets/real_glass_card.dart';
@@ -23,6 +24,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _nameController = TextEditingController(text: 'Jaswanth');
   final _emailController = TextEditingController(text: 'jaswanth@jack.ai');
   final _passwordController = TextEditingController(text: 'jack2026');
   bool _isLoading = false;
@@ -30,17 +32,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _login({String? emailOverride, String? passwordOverride}) async {
+  Future<void> _login({String? emailOverride, String? passwordOverride, String? nameOverride}) async {
+    final name = (nameOverride ?? _nameController.text.trim()).isNotEmpty
+        ? (nameOverride ?? _nameController.text.trim())
+        : 'Jaswanth';
     final email = emailOverride ?? _emailController.text.trim();
     final password = passwordOverride ?? _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter email and password');
+      setState(() => _errorMessage = 'Please enter your name, email and password');
       return;
     }
 
@@ -51,15 +57,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref.read(authStateProvider.notifier).login(email, password);
-      if (mounted) {
-        context.go('/home');
-      }
+      await JackStorage.write(key: 'jack_user_name', value: name);
+      await ref.read(authStateProvider.notifier).login(email, password, name);
+      ref.invalidate(userNameProvider);
+      if (!mounted) return;
+      context.go('/home');
     } catch (_) {
-      if (mounted) {
-        ref.read(authStateProvider.notifier).markAuthenticated();
-        context.go('/home');
-      }
+      await JackStorage.write(key: 'jack_user_name', value: name);
+      if (!mounted) return;
+      ref.read(authStateProvider.notifier).markAuthenticated();
+      ref.invalidate(userNameProvider);
+      context.go('/home');
     }
   }
 
@@ -123,6 +131,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
                       ],
+
+                      // Full Name input
+                      TextField(
+                        controller: _nameController,
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                        keyboardType: TextInputType.name,
+                        decoration: InputDecoration(
+                          hintText: 'Your Full Name (e.g. Jaswanth)',
+                          hintStyle: GoogleFonts.inter(color: Colors.white30),
+                          prefixIcon: const Icon(Icons.person_outline_rounded,
+                              color: Colors.white54, size: 20),
+                          filled: true,
+                          fillColor: const Color(0xFF141320),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                                color: AppColors.accentCyan, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
 
                       // Email input
                       TextField(
