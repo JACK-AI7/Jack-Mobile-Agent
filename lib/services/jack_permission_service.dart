@@ -192,12 +192,32 @@ class JackPermissionService {
 
   static Future<void> openOverlaySettings() async {
     try {
-      await _controllerChannel.invokeMethod('openOverlaySettings');
+      await const MethodChannel('com.jack.agent/overlay').invokeMethod('requestOverlayPermission');
     } catch (_) {
       try {
-        await FlutterOverlayWindow.requestPermission();
-      } catch (_) {}
+        await _controllerChannel.invokeMethod('openOverlaySettings');
+      } catch (_) {
+        try {
+          await FlutterOverlayWindow.requestPermission();
+        } catch (_) {}
+      }
     }
+  }
+
+  static Future<bool> hasOverlayPermission() async {
+    try {
+      final res = await const MethodChannel('com.jack.agent/overlay').invokeMethod<bool>('hasPermission');
+      if (res == true) return true;
+      return await FlutterOverlayWindow.isPermissionGranted();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> launchOutsideOrb() async {
+    try {
+      await const MethodChannel('com.jack.agent/overlay').invokeMethod('showBubble');
+    } catch (_) {}
   }
 
   static Future<void> openWriteSettings() async {

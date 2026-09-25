@@ -14,7 +14,6 @@ import '../widgets/glass_nav_bar.dart';
 import '../services/agent/jack_droid_run_engine.dart';
 import '../services/jack_controller.dart';
 import '../services/jack_shizuku_controller.dart';
-import '../services/overlay/jack_floating_overlay_controller.dart';
 
 class AutonomyScreen extends ConsumerStatefulWidget {
   const AutonomyScreen({super.key});
@@ -42,6 +41,7 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
 
   bool _a11yActive = false;
   bool _shizukuReady = false;
+  bool _overlayGranted = false;
   final TextEditingController _goalController =
       TextEditingController(text: 'Open Settings and check Battery');
 
@@ -62,10 +62,12 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
   Future<void> _checkSystemPrivileges() async {
     final a11y = await JackController.isAccessibilityActive();
     final shizuku = await JackShizukuController.isReady();
+    final overlay = await JackPermissionService.hasOverlayPermission();
     if (mounted) {
       setState(() {
         _a11yActive = a11y;
         _shizukuReady = shizuku;
+        _overlayGranted = overlay;
       });
     }
   }
@@ -752,14 +754,31 @@ class _AutonomyScreenState extends ConsumerState<AutonomyScreen> {
             ),
             const Divider(color: Colors.white10, height: 20),
             _privilegeRow(
-              title: 'Floating Jack Overlay Pill',
-              subtitle: 'Persistent heads-up controller across all apps',
-              active: true,
+              title: 'Floating Outside 3D Jack Orb',
+              subtitle: _overlayGranted
+                  ? 'Always-on floating 3D orb with continuous voice chat'
+                  : 'Requires "Display over other apps" permission',
+              active: _overlayGranted,
               activeColor: const Color(0xFFF59E0B),
-              onAction: () {
-                ref.read(jackFloatingOverlayProvider.notifier).expand();
+              onAction: () async {
+                if (!_overlayGranted) {
+                  await JackPermissionService.openOverlaySettings();
+                  await Future.delayed(const Duration(seconds: 1));
+                  _checkSystemPrivileges();
+                } else {
+                  await JackPermissionService.launchOutsideOrb();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Floating Jack Orb launched! Minimize app to see it.'),
+                        backgroundColor: Color(0xFF131224),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                }
               },
-              actionLabel: 'Launch Pill',
+              actionLabel: _overlayGranted ? 'Launch Orb' : 'Grant Permission',
             ),
           ],
         ),

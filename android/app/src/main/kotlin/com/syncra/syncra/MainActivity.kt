@@ -938,12 +938,23 @@ class MainActivity : FlutterActivity() {
                             Settings.canDrawOverlays(this) else true
                         result.success(has)
                     }
+                    "requestOverlayPermission", "openOverlaySettings" -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:$packageName")
+                            )
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        }
+                        result.success(true)
+                    }
                     "show" -> {
                         val mode = call.argument<String>("mode") ?: JackOverlayService.MODE_LISTENING
                         if (JackOverlayService.instance != null) {
                             JackOverlayService.instance!!.updateMode(mode)
                             if (mode == "bubble") {
-                                JackOverlayService.instance!!.showBubble()
+                                JackOverlayService.instance!!.showBubble(force = true)
                             } else {
                                 JackOverlayService.instance!!.showPill()
                             }
@@ -979,7 +990,16 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                     "showBubble" -> {
-                        JackOverlayService.instance?.showBubble()
+                        isForeground = false
+                        if (JackOverlayService.instance != null) {
+                            JackOverlayService.instance?.showBubble(force = true)
+                        } else {
+                            val i = Intent(this, JackOverlayService::class.java).apply {
+                                putExtra(JackOverlayService.EXTRA_MODE, JackOverlayService.MODE_LISTENING)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                                startForegroundService(i) else startService(i)
+                        }
                         result.success(true)
                     }
                     "hideAll" -> {

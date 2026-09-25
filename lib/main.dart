@@ -71,6 +71,7 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
   final FlutterTts _overlayTts = FlutterTts();
   bool _overlaySpeechInit = false;
   bool _isOverlayLoopActive = false;
+  bool _isSpeaking = false;
   final List<Map<String, String>> _overlayChatMemory = [];
   Timer? _overlayInactivityTimer;
 
@@ -99,6 +100,7 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
         _handleBubbleVoiceInteraction();
       } else if (call.method == 'onPillDismissed') {
         _isOverlayLoopActive = false;
+        _isSpeaking = false;
         _overlayInactivityTimer?.cancel();
         await JackTaskRecorder.completeSessionTask();
         try {
@@ -111,14 +113,14 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
 
   void _resetInactivityTimer() {
     _overlayInactivityTimer?.cancel();
-    _overlayInactivityTimer = Timer(const Duration(seconds: 16), () async {
-      if (_isOverlayLoopActive) {
+    _overlayInactivityTimer = Timer(const Duration(seconds: 60), () async {
+      if (_isOverlayLoopActive && !_isSpeaking) {
         _isOverlayLoopActive = false;
         await JackTaskRecorder.completeSessionTask();
         try {
           await _overlaySpeech.stop();
           await _overlayTts.stop();
-          await _overlayChannel.invokeMethod('show', {'mode': 'bubble'});
+          await _overlayChannel.invokeMethod('showBubble');
         } catch (_) {}
       }
     });
@@ -126,7 +128,7 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
 
   Future<void> _handleBubbleVoiceInteraction() async {
     _isOverlayLoopActive = true;
-    _overlayChatMemory.clear();
+    _isSpeaking = false;
 
     // Start single continuous task for this pill session
     await JackTaskRecorder.startOrGetSessionTask(initialTitle: 'Live Assistant Session');
@@ -145,8 +147,29 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
 
       if (!_overlaySpeechInit) {
         _overlaySpeechInit = await _overlaySpeech.initialize(
-          onError: (err) => debugPrint('[OverlaySpeech] Error: $err'),
-          onStatus: (status) => debugPrint('[OverlaySpeech] Status: $status'),
+          onError: (err) {
+            debugPrint('[OverlaySpeech] Error: $err');
+            if (_isOverlayLoopActive && !_isSpeaking) {
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (_isOverlayLoopActive && !_isSpeaking && !_overlaySpeech.isListening) {
+                  _listenOverlayLoop();
+                }
+              });
+            }
+          },
+          onStatus: (status) {
+            debugPrint('[OverlaySpeech] Status: $status');
+            // Auto-reconnect speech recognizer on silence or pause to keep listening continuously
+            if ((status == 'done' || status == 'notListening') &&
+                _isOverlayLoopActive &&
+                !_isSpeaking) {
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (_isOverlayLoopActive && !_isSpeaking && !_overlaySpeech.isListening) {
+                  _listenOverlayLoop();
+                }
+              });
+            }
+          },
         );
         await JackMaleVoiceHelper.configureMaleBaritoneVoice(_overlayTts);
       }
@@ -178,6 +201,7 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
 
           if (result.finalResult && words.isNotEmpty) {
             _overlayInactivityTimer?.cancel();
+            _isSpeaking = true;
             await _overlaySpeech.stop();
 
             // Check dismissal / goodbye commands
@@ -199,14 +223,15 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
               await JackTaskRecorder.completeSessionTask();
               await Future.delayed(const Duration(milliseconds: 1400));
               _isOverlayLoopActive = false;
-              await _overlayChannel.invokeMethod('show', {'mode': 'bubble'});
+              _isSpeaking = false;
+              await _overlayChannel.invokeMethod('showBubble');
               return;
             }
 
             await _overlayChannel.invokeMethod('show', {'mode': 'thinking'});
             await _overlayChannel.invokeMethod('updateOverlayChat', {
               'user': words,
-              'jack': 'Processing request...',
+              'jack': 'Thinking...',
             });
 
             // 1. Try continuous reflex fast-path (Hardware, DOM, YouTube, Chrome, Volume, Power, etc.)
@@ -254,7 +279,7 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
             _overlayChatMemory.add({'role': 'user', 'content': words});
             _overlayChatMemory
                 .add({'role': 'assistant', 'content': verbalSpeech});
-            if (_overlayChatMemory.length > 10) {
+            if (_overlayChatMemory.length > 14) {
               _overlayChatMemory.removeRange(0, 2);
             }
 
@@ -283,9 +308,10 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
               if (didContinue) return;
               didContinue = true;
               watchdog?.cancel();
+              _isSpeaking = false;
 
               if (!_isOverlayLoopActive) return;
-              await Future.delayed(const Duration(milliseconds: 350));
+              await Future.delayed(const Duration(milliseconds: 300));
               if (!_isOverlayLoopActive) return;
 
               await _overlayChannel.invokeMethod('show', {'mode': 'listening'});
@@ -311,8 +337,8 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
           _overlayChannel.invokeMethod('updateAudioLevel', {'level': normalized});
         },
         listenOptions: stt.SpeechListenOptions(
-          listenFor: const Duration(seconds: 20),
-          pauseFor: const Duration(seconds: 3),
+          listenFor: const Duration(seconds: 30),
+          pauseFor: const Duration(seconds: 4),
           partialResults: true,
           cancelOnError: false,
           listenMode: stt.ListenMode.dictation,
@@ -338,12 +364,17 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
         state == AppLifecycleState.inactive) {
       // App went to background — show native floating 3D Jack Orb bubble outside the app
       try {
-        await _overlayChannel.invokeMethod('show', {'mode': 'bubble'});
-      } catch (_) {}
+        await _overlayChannel.invokeMethod('showBubble');
+      } catch (_) {
+        try {
+          await _overlayChannel.invokeMethod('show', {'mode': 'bubble'});
+        } catch (_) {}
+      }
     } else if (state == AppLifecycleState.resumed) {
       // App came to foreground — hide floating bubble inside the app
       try {
         _isOverlayLoopActive = false;
+        _isSpeaking = false;
         _overlayInactivityTimer?.cancel();
         await _overlaySpeech.stop();
         await _overlayTts.stop();

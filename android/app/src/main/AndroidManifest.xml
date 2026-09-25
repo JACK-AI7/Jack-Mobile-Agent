@@ -117,7 +117,7 @@
         <service
             android:name=".JackOverlayService"
             android:exported="false"
-            android:foregroundServiceType="specialUse|microphone|phoneCall|mediaPlayback">
+            android:foregroundServiceType="specialUse|microphone|mediaPlayback">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="jack_dom_overlay" />

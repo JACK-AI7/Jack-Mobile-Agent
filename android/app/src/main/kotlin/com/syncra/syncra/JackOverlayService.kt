@@ -69,6 +69,7 @@ class JackOverlayService : Service() {
         if (bubbleView == null) initViews()
         bubbleView?.setMode(mode)
         pillView?.setMode(mode)
+        showBubble()
         return START_STICKY
     }
 
@@ -264,16 +265,18 @@ class JackOverlayService : Service() {
         pillView?.setAudioLevel(level)
     }
 
-    fun showBubble() {
-        if (MainActivity.isForeground) {
+    fun showBubble(force: Boolean = false) {
+        if (!force && MainActivity.isForeground) {
             hideAll()
             return
         }
         if (bubbleView == null) initViews()
-        bubbleView?.visibility = View.VISIBLE
-        bubbleView?.alpha = 1f
-        pillView?.visibility = View.GONE
-        pillVisible = false
+        post {
+            bubbleView?.visibility = View.VISIBLE
+            bubbleView?.alpha = 1f
+            pillView?.visibility = View.GONE
+            pillVisible = false
+        }
     }
 
     fun hideAll() {

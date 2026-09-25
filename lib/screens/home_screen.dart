@@ -148,6 +148,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Launch Outside Floating Orb',
+            icon: const Icon(Icons.bubble_chart_rounded,
+                color: Color(0xFF00E5FF), size: 22),
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              final hasPerm = await JackPermissionService.hasOverlayPermission();
+              if (!hasPerm) {
+                await JackPermissionService.openOverlaySettings();
+              } else {
+                await JackPermissionService.launchOutsideOrb();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Floating Jack Orb active! Minimize app to see it.'),
+                      backgroundColor: Color(0xFF131224),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          IconButton(
             tooltip: 'Device Autonomy & Agent Control',
             icon: const Icon(Icons.auto_mode_rounded,
                 color: AppColors.accentCyan, size: 21),
