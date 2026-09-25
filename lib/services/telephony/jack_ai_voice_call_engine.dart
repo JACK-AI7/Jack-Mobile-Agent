@@ -48,6 +48,8 @@ class JackAiVoiceCallEngine {
 
   final ValueNotifier<bool> isJackSpeakingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isCallerSpeakingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isTakenOverByUserNotifier = ValueNotifier<bool>(false);
+  bool get isTakenOverByUser => isTakenOverByUserNotifier.value;
 
   Future<void> init() async {
     try {
@@ -86,6 +88,7 @@ class JackAiVoiceCallEngine {
     _isOutgoing = false;
     _callState = AiCallState.incomingRinging;
     _currentCallUuid = DateTime.now().millisecondsSinceEpoch.toString();
+    isTakenOverByUserNotifier.value = false;
     liveTranscriptNotifier.value = [];
 
     final params = CallKitParams(
@@ -125,6 +128,7 @@ class JackAiVoiceCallEngine {
     _isOutgoing = true;
     _callState = AiCallState.outgoingDialing;
     _currentCallUuid = DateTime.now().millisecondsSinceEpoch.toString();
+    isTakenOverByUserNotifier.value = false;
     liveTranscriptNotifier.value = [];
 
     final params = CallKitParams(
@@ -224,7 +228,13 @@ class JackAiVoiceCallEngine {
             _appendTranscript(_currentCallerName.isNotEmpty ? _currentCallerName : 'Caller', words);
             _stt.stop();
             isCallerSpeakingNotifier.value = false;
-            await _reasonAndReply(words);
+
+            if (!isTakenOverByUser) {
+              await _reasonAndReply(words);
+            } else {
+              // User has taken over: keep transcribing caller in background
+              _listenToCaller();
+            }
           }
         },
         listenOptions: stt.SpeechListenOptions(
@@ -239,8 +249,38 @@ class JackAiVoiceCallEngine {
     }
   }
 
+  /// User taps "Take Over Call" to speak directly to caller
+  Future<void> takeOverCall() async {
+    isTakenOverByUserNotifier.value = true;
+    const msg = 'One moment please, connecting you directly to the device owner now.';
+    _appendTranscript('Jack', msg);
+    await _speak(msg);
+    _listenToCaller();
+  }
+
+  /// User hands call back to Jack to resume AI screening
+  Future<void> handBackToJack() async {
+    isTakenOverByUserNotifier.value = false;
+    const msg = 'Jack is back on the line. How can I assist you further?';
+    _appendTranscript('Jack', msg);
+    await _speak(msg);
+    _listenToCaller();
+  }
+
+  /// User sends a quick directive during screening for Jack to speak
+  Future<void> sendUserDirective(String directive) async {
+    _appendTranscript('You (Directive)', directive);
+    final response = await JackLocalLlmEngine.instance.generateVoiceResponse(
+      'The device owner instructed: "$directive". Inform the caller in 1 polite spoken sentence.',
+      systemDirective: 'You are Jack on a live call. Inform the caller of the device owner\'s instruction politely and concisely.',
+    );
+    _appendTranscript('Jack', response);
+    await _speak(response);
+    _listenToCaller();
+  }
+
   Future<void> _reasonAndReply(String callerInput) async {
-    if (_callState != AiCallState.connected) return;
+    if (_callState != AiCallState.connected || isTakenOverByUser) return;
 
     try {
       final systemPrompt = '''
@@ -260,7 +300,7 @@ ${liveTranscriptNotifier.value.map((t) => "${t['speaker']}: ${t['message']}").jo
       await _speak(replyText);
 
       // Continue the conversation loop
-      if (_callState == AiCallState.connected) {
+      if (_callState == AiCallState.connected && !isTakenOverByUser) {
         _listenToCaller();
       }
     } catch (e) {

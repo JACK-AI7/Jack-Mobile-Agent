@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:onnxruntime_genai/onnxruntime_genai.dart' as ort;
@@ -34,8 +35,13 @@ class JackLocalLlmEngine {
   bool _isInitializing = false;
   String _modelDirectoryPath = '';
 
+  final ValueNotifier<double> downloadProgressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<String> downloadStatusNotifier = ValueNotifier<String>('');
+  final ValueNotifier<bool> isDownloadingNotifier = ValueNotifier<bool>(false);
+
   bool get isReady => _isModelLoaded;
   bool get isInitializing => _isInitializing;
+  bool get isDownloading => isDownloadingNotifier.value;
   String get modelPath => _modelDirectoryPath;
 
   /// Default prioritized system directive for call screening
@@ -77,6 +83,83 @@ Keep responses under 2 natural spoken sentences for sub-50ms voice synthesis.
     } catch (e) {
       debugPrint("⚠️ [JackLocalAI] Native ONNX hardware acceleration notice: $e. Gracefully operating in hybrid fallback.");
       _isInitializing = false;
+      return false;
+    }
+  }
+
+  /// Downloads the Meta Llama 3.2 1B INT4 ONNX bundle directly into app storage
+  Future<bool> downloadLlamaModel({
+    String? customBaseUrl,
+    void Function(double progress, String status)? onProgress,
+  }) async {
+    if (isDownloadingNotifier.value) return false;
+
+    isDownloadingNotifier.value = true;
+    downloadProgressNotifier.value = 0.0;
+    downloadStatusNotifier.value = 'Preparing local storage...';
+    onProgress?.call(0.0, 'Preparing local storage...');
+
+    try {
+      final targetDir = await _resolveModelDirectory(autoExtractAssets: false);
+      final dir = Directory(targetDir);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+
+      final baseUrl = customBaseUrl ??
+          'https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct-ONNX/resolve/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4';
+
+      final files = [
+        'genai_config.json',
+        'tokenizer.json',
+        'tokenizer_config.json',
+        'special_tokens_map.json',
+        'model.onnx',
+        'model.onnx.data',
+      ];
+
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(minutes: 10),
+      ));
+
+      for (int i = 0; i < files.length; i++) {
+        final fileName = files[i];
+        final fileUrl = '$baseUrl/$fileName';
+        final savePath = p.join(targetDir, fileName);
+
+        downloadStatusNotifier.value = 'Downloading $fileName (${i + 1}/${files.length})...';
+        onProgress?.call((i / files.length), downloadStatusNotifier.value);
+
+        await dio.download(
+          fileUrl,
+          savePath,
+          onReceiveProgress: (received, total) {
+            if (total > 0) {
+              final fileFraction = received / total;
+              final overall = (i + fileFraction) / files.length;
+              downloadProgressNotifier.value = overall;
+              onProgress?.call(
+                overall,
+                'Downloading $fileName: ${(fileFraction * 100).toStringAsFixed(0)}%',
+              );
+            }
+          },
+        );
+      }
+
+      downloadProgressNotifier.value = 1.0;
+      downloadStatusNotifier.value = 'Download complete! Booting GPU engine...';
+      onProgress?.call(1.0, downloadStatusNotifier.value);
+
+      await initializeLocalAgent(autoExtractAssets: false);
+
+      isDownloadingNotifier.value = false;
+      return isReady;
+    } catch (e) {
+      debugPrint('[JackLocalAI] Download notice: $e');
+      downloadStatusNotifier.value = 'Download notice: $e';
+      isDownloadingNotifier.value = false;
       return false;
     }
   }

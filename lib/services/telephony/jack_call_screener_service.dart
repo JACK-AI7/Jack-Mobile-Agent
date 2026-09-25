@@ -15,7 +15,6 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../theme/app_colors.dart';
 import '../../widgets/jack_orb.dart';
-import '../api/direct_groq_service.dart';
 import '../notifications/jack_notification_service.dart';
 import '../tasks/jack_task_service.dart';
 import '../voice/jack_male_voice_helper.dart';
@@ -24,6 +23,7 @@ import '../../models/call_log_model.dart';
 import '../security/jack_security_shield_service.dart';
 import '../personality/jack_personality_service.dart';
 import '../memory/jack_cognitive_memory.dart';
+import '../ai/jack_local_llm_engine.dart';
 
 enum CallScreeningPhase {
   incoming,
@@ -31,6 +31,7 @@ enum CallScreeningPhase {
   jackSpeaking,
   callerSpeaking,
   reasoning,
+  userSpeaking,
   completed,
 }
 
@@ -237,6 +238,28 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
     } catch (_) {}
   }
 
+  bool _isTakenOver = false;
+
+  Future<void> _takeOverCall() async {
+    HapticFeedback.heavyImpact();
+    setState(() {
+      _isTakenOver = true;
+      _phase = CallScreeningPhase.userSpeaking;
+    });
+    const msg = "One moment please, transferring you directly to the device owner now.";
+    await _speakJack(msg);
+  }
+
+  Future<void> _handBackToJack() async {
+    HapticFeedback.heavyImpact();
+    setState(() {
+      _isTakenOver = false;
+      _phase = CallScreeningPhase.jackSpeaking;
+    });
+    const msg = "Jack is back on the line. How can I assist you further?";
+    await _speakJack(msg);
+  }
+
   void _simulateRinging() async {
     for (int i = 0; i < 4; i++) {
       if (!mounted || _phase != CallScreeningPhase.incoming) break;
@@ -421,18 +444,23 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
           break; // Stop and terminate call immediately
         }
 
-        // Reason dynamically using Groq LLM with personality system prompt
+        if (_isTakenOver) {
+          continue;
+        }
+
+        // Reason dynamically using Local Llama 3.2 1B (Sub-50ms) or Groq fallback
         setState(() => _phase = CallScreeningPhase.reasoning);
         try {
-          final groq = widget.ref.read(directGroqServiceProvider);
           final activePersonality = widget.ref.read(jackPersonalityProvider).activeProfile;
           final prompt =
               "${activePersonality.systemPrompt}\n"
               "You are on a live phone call with ${widget.callerName}. "
               "The caller just said: '$callerMessage'. "
-              "Respond directly to the caller in 1-2 natural sentences according to your personality, confirming you noted it.";
-          jackResponse = await groq.generate(prompt: prompt);
-          jackResponse = jackResponse.replaceAll(RegExp(r'<think>.*?</think>', dotAll: true), '').trim();
+              "Respond directly to the caller in 1-2 natural sentences according to your personality.";
+          jackResponse = await JackLocalLlmEngine.instance.generateVoiceResponse(
+            callerMessage,
+            systemDirective: prompt,
+          );
         } catch (_) {
           final activePersonality = widget.ref.read(jackPersonalityProvider).activeProfile;
           jackResponse = "${activePersonality.confirmPhrase} I have recorded your message and notified the team.";
@@ -989,6 +1017,46 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
                 },
               ),
             ),
+            // ── Live Call Takeover Button Bar ──────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: const Color(0xFF0F0E22),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _isTakenOver ? const Color(0xFF00E5FF) : const Color(0xFFEF4444),
+                        side: BorderSide(
+                          color: (_isTakenOver ? const Color(0xFF00E5FF) : const Color(0xFFEF4444))
+                              .withValues(alpha: 0.5),
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: Icon(_isTakenOver ? Icons.smart_toy_rounded : Icons.phone_in_talk_rounded, size: 16),
+                      label: Text(
+                        _isTakenOver ? 'Hand Back to Jack' : 'Take Over Call',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      onPressed: () {
+                        if (_isTakenOver) {
+                          _handBackToJack();
+                        } else {
+                          _takeOverCall();
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.call_end_rounded, color: Color(0xFFEF4444)),
+                    tooltip: 'End Call',
+                    onPressed: _declineCall,
+                  ),
+                ],
+              ),
+            ),
+
             if (_phase == CallScreeningPhase.callerSpeaking)
               _buildLiveMicIndicator(),
           ],
