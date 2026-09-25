@@ -15,9 +15,17 @@ import 'services/voice/jack_male_voice_helper.dart';
 import 'services/tasks/jack_task_service.dart';
 import 'services/immortal/jack_immortal_service.dart';
 import 'services/voice/jack_wake_word_service.dart';
+import 'services/memory/jack_cognitive_memory.dart';
+import 'services/telephony/jack_ai_voice_call_engine.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SQLite Cognitive Memory & WebRTC Call Engine
+  try {
+    await JackCognitiveMemory().init();
+    await JackAiVoiceCallEngine.instance.init();
+  } catch (_) {}
 
   // Force portrait orientation
   SystemChrome.setPreferredOrientations([
@@ -113,12 +121,32 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
         final evType = event['event'];
         if (evType == 'incoming' || evType == 'answered') {
           if (!mounted) return;
+          final cName = event['contactName']?.toString() ?? 'Unknown';
+          final cNum = event['number']?.toString() ?? '';
+          JackAiVoiceCallEngine.instance.showIncomingCall(
+            callerName: cName,
+            phoneNumber: cNum,
+          );
           import_call_service.JackCallScreenerService.instance.triggerIncomingCall(
             context,
             ref,
-            callerName: event['contactName']?.toString() ?? 'Unknown',
-            phoneNumber: event['number']?.toString() ?? '',
+            callerName: cName,
+            phoneNumber: cNum,
             autoAnswer: true,
+          );
+        } else if (evType == 'outgoing') {
+          if (!mounted) return;
+          final cNum = event['number']?.toString() ?? '';
+          final cName = event['contactName']?.toString() ?? cNum;
+          JackAiVoiceCallEngine.instance.startOutgoingCall(
+            recipientName: cName,
+            phoneNumber: cNum,
+          );
+          import_call_service.JackCallScreenerService.instance.triggerOutgoingCall(
+            context,
+            ref,
+            phoneNumber: cNum,
+            contactName: cName,
           );
         }
       }

@@ -23,6 +23,7 @@ import '../../providers/call_log_provider.dart';
 import '../../models/call_log_model.dart';
 import '../security/jack_security_shield_service.dart';
 import '../personality/jack_personality_service.dart';
+import '../memory/jack_cognitive_memory.dart';
 
 enum CallScreeningPhase {
   incoming,
@@ -139,6 +140,32 @@ class JackCallScreenerService {
       ),
     );
   }
+
+  /// Launch outgoing AI call screen modal
+  void triggerOutgoingCall(
+    BuildContext context,
+    WidgetRef ref, {
+    required String phoneNumber,
+    String? contactName,
+  }) {
+    HapticFeedback.heavyImpact();
+    _initAudio();
+
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _JackCallScreeningModal(
+        callerName: contactName ?? phoneNumber,
+        phoneNumber: phoneNumber,
+        ref: ref,
+        autoAnswer: true,
+        isOutgoing: true,
+      ),
+    );
+  }
 }
 
 class _JackCallScreeningModal extends StatefulWidget {
@@ -147,6 +174,7 @@ class _JackCallScreeningModal extends StatefulWidget {
   final String? scenarioPrompt;
   final WidgetRef ref;
   final bool autoAnswer;
+  final bool isOutgoing;
 
   const _JackCallScreeningModal({
     required this.callerName,
@@ -154,6 +182,7 @@ class _JackCallScreeningModal extends StatefulWidget {
     this.scenarioPrompt,
     required this.ref,
     this.autoAnswer = true,
+    this.isOutgoing = false,
   });
 
   @override
@@ -306,8 +335,11 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
 
     // 1. Jack greets the caller out loud over the call line
     await Future.delayed(const Duration(milliseconds: 600));
-    final greeting =
-        "Hello! I am Jack, the AI assistant. I am taking this call. Who is calling, and how may I assist you?";
+    final greeting = widget.isOutgoing
+        ? "Hello! I am Jack, the AI assistant calling on behalf of the device owner. Am I speaking with ${widget.callerName}?"
+        : (widget.callerName != 'Unknown' && widget.callerName.isNotEmpty
+            ? "Hello ${widget.callerName}! I am Jack, the AI assistant. I am answering this call for the device owner. How may I assist you?"
+            : "Hello! I am Jack, the AI assistant. I am taking this call for the device owner. Who is calling, and how may I assist you?");
     await _speakJack(greeting);
 
     if (!mounted) return;
@@ -476,6 +508,19 @@ class _JackCallScreeningModalState extends State<_JackCallScreeningModal>
           'Logged to persistent system tasks',
         ],
       ));
+    } catch (_) {}
+
+    // Persist call history to SQLite Cognitive Memory
+    try {
+      await JackCognitiveMemory().logCallMemory(
+        callerNumber: widget.phoneNumber,
+        callerName: widget.callerName,
+        callType: widget.isOutgoing ? 'outgoing' : 'incoming',
+        summary: callerMessage.isNotEmpty
+            ? 'Caller: "$callerMessage" | Jack: "$jackResponse"'
+            : 'Call handled autonomously by Jack AI.',
+        transcription: _transcript.map((t) => "${t.speaker}: ${t.message}").join(' | '),
+      );
     } catch (_) {}
 
     // Show persistent Heads-up Notification

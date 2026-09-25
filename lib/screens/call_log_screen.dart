@@ -18,6 +18,8 @@ import '../models/call_log_model.dart';
 import '../providers/call_log_provider.dart';
 import '../services/jack_master_dispatcher.dart';
 import '../services/telephony/jack_call_screener_service.dart';
+import '../services/telephony/jack_ai_voice_call_engine.dart';
+import '../services/memory/jack_cognitive_memory.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
 
@@ -92,6 +94,32 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
         ),
       );
     }
+
+    try {
+      final sqliteCalls = await JackCognitiveMemory().getCallMemories();
+      final notifier = ref.read(callLogProvider.notifier);
+      final currentLogs = ref.read(callLogProvider);
+      for (final c in sqliteCalls) {
+        final id = 'sqlite_${c['id']}';
+        if (!currentLogs.any((l) => l.id == id)) {
+          await notifier.addEntry(
+            CallLogEntry(
+              id: id,
+              contactName: c['caller_name'] as String? ?? 'Caller',
+              phoneNumber: c['caller_number'] as String? ?? '',
+              type: (c['call_type'] == 'outgoing') ? CallLogType.outgoing : CallLogType.incoming,
+              startTime: DateTime.tryParse(c['timestamp'] as String? ?? '') ?? DateTime.now(),
+              duration: const Duration(seconds: 45),
+              aiSummary: c['summary'] as String?,
+              jackActions: [
+                'Autonomous call recorded in SQLite Cognitive Memory',
+                'Transcribed in real-time',
+              ],
+            ),
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   void _showTestCallDialog() {
@@ -255,9 +283,15 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
                   ),
                   onPressed: () {
                     Navigator.of(ctx).pop();
+                    final cName = nameCtrl.text.trim().isEmpty ? 'Sarah Jenkins' : nameCtrl.text.trim();
+                    final cNum = numCtrl.text.trim().isEmpty ? '+1 (415) 892-0199' : numCtrl.text.trim();
+                    JackAiVoiceCallEngine.instance.showIncomingCall(
+                      callerName: cName,
+                      phoneNumber: cNum,
+                    );
                     JackCallScreenerService.triggerGlobally(
-                      callerName: nameCtrl.text.trim().isEmpty ? 'Sarah Jenkins' : nameCtrl.text.trim(),
-                      phoneNumber: numCtrl.text.trim().isEmpty ? '+1 (415) 892-0199' : numCtrl.text.trim(),
+                      callerName: cName,
+                      phoneNumber: cNum,
                     );
                   },
                 ),
@@ -328,6 +362,16 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
               final target = targetCtrl.text.trim();
               Navigator.of(ctx).pop();
               if (target.isNotEmpty) {
+                JackAiVoiceCallEngine.instance.startOutgoingCall(
+                  recipientName: target,
+                  phoneNumber: target,
+                );
+                JackCallScreenerService.instance.triggerOutgoingCall(
+                  context,
+                  ref,
+                  phoneNumber: target,
+                  contactName: target,
+                );
                 final res = await JackMasterDispatcher.executeCommand({
                   'intent': 'make_call',
                   'params': {'target': target},

@@ -19,6 +19,7 @@ import '../services/jack_master_dispatcher.dart';
 import '../services/telephony/jack_call_screener_service.dart';
 import '../services/tasks/jack_task_service.dart';
 import '../services/overlay/jack_floating_overlay_controller.dart';
+import '../services/memory/jack_cognitive_memory.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
@@ -69,6 +70,7 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
 
   // Real interactive configuration state for memory
   bool _longTermMemoryEnabled = true;
+  List<CognitiveMemoryItem> _cognitiveMemories = [];
   List<String> _memories = [];
   final TextEditingController _newMemoryCtrl = TextEditingController();
 
@@ -208,25 +210,9 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
       final prompt = await JackStorage.read(key: 'agent_custom_prompt');
       if (prompt != null) _customPromptCtrl.text = prompt;
 
-      final memsRaw = await JackStorage.read(key: 'jack_episodic_memories');
-      if (memsRaw != null && memsRaw.isNotEmpty && !memsRaw.contains('Easin') && !memsRaw.contains('Android 14 Pro')) {
-        final List<dynamic> decoded = jsonDecode(memsRaw);
-        _memories = decoded.map((e) => e.toString()).toList();
-      } else {
-        final userName = await JackStorage.read(key: 'jack_user_name') ?? 'Jaswanth';
-        final dev = await JackStorage.getDeviceInfo();
-        final devName = '${dev['manufacturer'] ?? 'Android'} ${dev['model'] ?? 'Device'} (Android ${dev['androidVersion'] ?? '14'})';
-        _memories = [
-          'User Name: $userName',
-          'Preferred Voice: British Baritone (Pitch 0.82)',
-          'Device: $devName',
-          'Primary Task: Autonomous Mobile Assistant & Device Guard',
-        ];
-        await JackStorage.write(
-          key: 'jack_episodic_memories',
-          value: jsonEncode(_memories),
-        );
-      }
+      await JackCognitiveMemory().init();
+      _cognitiveMemories = await JackCognitiveMemory().getAllMemories();
+      _memories = _cognitiveMemories.map((e) => '${e.key}: ${e.value}').toList();
 
       final groqKey = await DirectGroqService().getApiKey();
       if (groqKey != null) _groqKeyCtrl.text = groqKey;
@@ -1256,41 +1242,95 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
                   },
                 ),
                 const SizedBox(height: 10),
-                Text('Active Facts in Memory (${_memories.length})',
+                Text('Active Facts in SQLite Memory (${_cognitiveMemories.isNotEmpty ? _cognitiveMemories.length : _memories.length})',
                     style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                ..._memories.map((m) => Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.lens_blur_rounded, color: Color(0xFFF43F5E), size: 14),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(m, style: GoogleFonts.inter(color: Colors.white, fontSize: 12.5)),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () async {
-                              HapticFeedback.lightImpact();
-                              setSheetState(() => _memories.remove(m));
-                              setState(() => _memories.remove(m));
-                              await JackStorage.write(
-                                key: 'jack_episodic_memories',
-                                value: jsonEncode(_memories),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    )),
+                if (_cognitiveMemories.isNotEmpty)
+                  ..._cognitiveMemories.map((m) => Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF43F5E).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                m.category.toUpperCase(),
+                                style: GoogleFonts.inter(
+                                  color: const Color(0xFFF43F5E),
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(m.key,
+                                      style: GoogleFonts.inter(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600)),
+                                  Text(m.value,
+                                      style: GoogleFonts.inter(
+                                          color: Colors.white, fontSize: 12.5)),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () async {
+                                HapticFeedback.lightImpact();
+                                if (m.id != null) {
+                                  await JackCognitiveMemory().deleteMemory(m.id!);
+                                } else {
+                                  await JackCognitiveMemory().deleteMemoryByKey(m.key);
+                                }
+                                final refreshed = await JackCognitiveMemory().getAllMemories();
+                                setSheetState(() {
+                                  _cognitiveMemories = refreshed;
+                                  _memories = refreshed.map((e) => '${e.key}: ${e.value}').toList();
+                                });
+                                setState(() {
+                                  _cognitiveMemories = refreshed;
+                                  _memories = refreshed.map((e) => '${e.key}: ${e.value}').toList();
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ))
+                else
+                  ..._memories.map((m) => Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.lens_blur_rounded, color: Color(0xFFF43F5E), size: 14),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(m, style: GoogleFonts.inter(color: Colors.white, fontSize: 12.5)),
+                            ),
+                          ],
+                        ),
+                      )),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -1317,13 +1357,21 @@ class _BuilderScreenState extends ConsumerState<BuilderScreen>
                         final val = _newMemoryCtrl.text.trim();
                         if (val.isNotEmpty) {
                           HapticFeedback.selectionClick();
-                          setSheetState(() => _memories.add(val));
-                          setState(() => _memories.add(val));
-                          _newMemoryCtrl.clear();
-                          await JackStorage.write(
-                            key: 'jack_episodic_memories',
-                            value: jsonEncode(_memories),
+                          await JackCognitiveMemory().saveMemory(
+                            category: 'custom',
+                            key: 'Note_${DateTime.now().millisecondsSinceEpoch % 10000}',
+                            value: val,
                           );
+                          _newMemoryCtrl.clear();
+                          final refreshed = await JackCognitiveMemory().getAllMemories();
+                          setSheetState(() {
+                            _cognitiveMemories = refreshed;
+                            _memories = refreshed.map((e) => '${e.key}: ${e.value}').toList();
+                          });
+                          setState(() {
+                            _cognitiveMemories = refreshed;
+                            _memories = refreshed.map((e) => '${e.key}: ${e.value}').toList();
+                          });
                         }
                       },
                       style: ElevatedButton.styleFrom(

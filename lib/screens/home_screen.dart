@@ -233,8 +233,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       size: orbSize,
                       state: orbState,
                       onTap: () {
-                        HapticFeedback.mediumImpact();
-                        ref.read(jackWakeWordProvider.notifier).wakeUpManually();
+                        ref.read(jackWakeWordProvider.notifier).toggleListeningNow();
                       },
                     ),
                   ),
@@ -294,11 +293,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            wakeWordState.isWokenUp
-                                ? "Jack Awake: Ask your task"
-                                : (wakeWordState.isEnabled
-                                    ? 'Wake Word: Say "Hey Jack" or "Jack"'
-                                    : 'Wake Word: Paused (Tap to Enable)'),
+                            wakeWordState.isListening && wakeWordState.lastRecognized.isNotEmpty
+                                ? '"${wakeWordState.lastRecognized}"'
+                                : (wakeWordState.isListening
+                                    ? 'Listening to you... Speak now'
+                                    : (wakeWordState.isWokenUp
+                                        ? "Jack Awake: Ask your task"
+                                        : (wakeWordState.isEnabled
+                                            ? 'Wake Word: Say "Hey Jack" or Tap Orb'
+                                            : 'Wake Word: Paused (Tap to Enable)'))),
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 12,

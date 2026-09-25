@@ -268,10 +268,11 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
 
   /// Called when TTS finishes speaking
   void _onTtsFinished() {
-    if (state.isAwaitingTask && !_isProcessing) {
+    if (state.isAwaitingTask) {
+      _isProcessing = false;
       // Begin listening for the user's task
       _listenForUserTask();
-    } else if (!state.isAwaitingTask && state.isEnabled && !_isProcessing) {
+    } else if (state.isEnabled && !_isProcessing) {
       // Resume wake word standby
       _scheduleLoopRestart(600);
     }
@@ -279,6 +280,7 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
 
   /// Listens specifically for the user's task command after Jack asked "Hi Sir, what's the task?"
   Future<void> _listenForUserTask() async {
+    _isProcessing = false;
     HapticFeedback.selectionClick();
     _startWaveformDance();
 
@@ -378,26 +380,47 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
     _scheduleLoopRestart(1200);
   }
 
-  /// Manually triggers the wake up flow (for testing or one-tap UI trigger)
-  Future<void> wakeUpManually({String? customPrompt}) async {
-    if (_isProcessing) return;
-    _isProcessing = true;
-    _restartLoopTimer?.cancel();
-    await _stt.stop();
-
-    HapticFeedback.heavyImpact();
+  /// Toggles immediate listening when user taps the Jack Orb
+  Future<void> toggleListeningNow() async {
+    HapticFeedback.mediumImpact();
     SystemSound.play(SystemSoundType.click);
 
-    final personality = _ref.read(jackPersonalityProvider).activeProfile;
-    final greeting = customPrompt ?? personality.wakeGreeting;
+    if (state.isListening) {
+      // If currently listening, stop and return to standby
+      _restartLoopTimer?.cancel();
+      _waveformTimer?.cancel();
+      await _stt.stop();
+      _isProcessing = false;
+      state = state.copyWith(
+        isListening: false,
+        isWokenUp: false,
+        isAwaitingTask: false,
+        statusMessage: 'Say "Hey Jack" or tap Orb to listen',
+        waveformLevel: 0.15,
+      );
+      _scheduleLoopRestart(1000);
+      return;
+    }
+
+    _restartLoopTimer?.cancel();
+    await _stt.stop();
+    await _tts.stop();
+    _isProcessing = false;
 
     state = state.copyWith(
       isWokenUp: true,
       isAwaitingTask: true,
-      statusMessage: greeting,
+      isListening: true,
+      statusMessage: "Listening to your task...",
+      lastRecognized: '',
     );
 
-    await _speak(greeting);
+    _listenForUserTask();
+  }
+
+  /// Manually triggers the wake up flow (for testing or one-tap UI trigger)
+  Future<void> wakeUpManually({String? customPrompt}) async {
+    toggleListeningNow();
   }
 
   /// Speaks text with voice parameters dynamically tuned for active personality

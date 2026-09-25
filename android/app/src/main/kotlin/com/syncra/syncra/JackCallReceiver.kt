@@ -106,8 +106,23 @@ class JackCallReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED &&
-            intent.action != "android.intent.action.NEW_OUTGOING_CALL") return
+        if (intent.action == "android.intent.action.NEW_OUTGOING_CALL" ||
+            intent.action == Intent.ACTION_NEW_OUTGOING_CALL) {
+            val outgoingNum = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER) ?: ""
+            if (outgoingNum.isNotBlank()) {
+                incomingNumber = outgoingNum
+                val contactName = resolveContactName(context, outgoingNum)
+                sendEvent(mapOf(
+                    "event"       to "outgoing",
+                    "number"      to outgoingNum,
+                    "contactName" to (contactName ?: outgoingNum),
+                    "isContact"   to (contactName != null),
+                ))
+            }
+            return
+        }
+
+        if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
 
         val stateStr = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
         val number   = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
