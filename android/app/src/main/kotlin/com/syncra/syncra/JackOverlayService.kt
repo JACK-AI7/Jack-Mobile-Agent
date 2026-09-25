@@ -181,11 +181,23 @@ class JackOverlayService : Service() {
         }
         pillParams = pp
 
+        var startY = 0f
         pill.setOnTouchListener { _, ev ->
             when (ev.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    startY = ev.rawY
+                    true
+                }
                 MotionEvent.ACTION_UP -> {
-                    hidePill()
-                    MainActivity.onPillClosed()
+                    val dy = ev.rawY - startY
+                    if (dy > dpToPx(40)) {
+                        // Swiped down: dismiss pill cleanly
+                        hidePill()
+                        MainActivity.onPillClosed()
+                    } else {
+                        // Tapped pill: ensure listening is active
+                        MainActivity.triggerJackListen()
+                    }
                     true
                 }
                 else -> false
@@ -597,6 +609,25 @@ class JackPillView(context: Context) : FrameLayout(context) {
             letterSpacing = 0.16f
         }
         headerRow.addView(title)
+
+        val spacer = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+        }
+        headerRow.addView(spacer)
+
+        val closeBtn = TextView(context).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#99FFFFFF"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(dpToPx(8), dpToPx(2), dpToPx(4), dpToPx(2))
+            setOnClickListener {
+                (context as? JackOverlayService)?.let { svc ->
+                    svc.hidePill()
+                    MainActivity.onPillClosed()
+                }
+            }
+        }
+        headerRow.addView(closeBtn)
         inner.addView(headerRow)
 
         // Gemini-Style Audio Waveform (5 animated bars in Jack colors)

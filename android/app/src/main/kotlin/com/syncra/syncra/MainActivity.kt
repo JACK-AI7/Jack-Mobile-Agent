@@ -71,16 +71,6 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.getBooleanExtra("trigger_call_screener", false)) {
-            val name = intent.getStringExtra("caller_name") ?: "Unknown"
-            val num = intent.getStringExtra("caller_number") ?: ""
-            JackCallReceiver.sendEvent(mapOf(
-                "event" to "incoming",
-                "number" to num,
-                "contactName" to name,
-                "isContact" to true
-            ))
-        }
     }
 
     override fun onPause() {

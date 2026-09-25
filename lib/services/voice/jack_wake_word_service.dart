@@ -79,6 +79,7 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
 
   bool _sttInitialized = false;
   bool _isProcessing = false;
+  String _currentTaskWords = '';
   Timer? _restartLoopTimer;
   Timer? _waveformTimer;
 
@@ -125,13 +126,30 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
       _sttInitialized = await _stt.initialize(
         onError: (err) {
           debugPrint('JackWakeWord STT error: $err');
-          _scheduleLoopRestart(1200);
+          if (state.isAwaitingTask && !_isProcessing) {
+            _finishTaskFlow('Could not hear task. Standing by.');
+          } else {
+            _scheduleLoopRestart(1200);
+          }
         },
         onStatus: (status) {
           debugPrint('JackWakeWord STT status: $status');
-          if (status == 'notListening' || status == 'done') {
-            state = state.copyWith(isListening: false);
-            _scheduleLoopRestart(500);
+          if (status == 'listening') {
+            state = state.copyWith(isListening: true);
+          } else if (status == 'notListening' || status == 'done') {
+            if (state.isAwaitingTask) {
+              if (_currentTaskWords.isNotEmpty && !_isProcessing) {
+                final task = _currentTaskWords;
+                _currentTaskWords = '';
+                _waveformTimer?.cancel();
+                _executeUserTask(task);
+              } else if (_currentTaskWords.isEmpty && !_isProcessing) {
+                _finishTaskFlow('Could not hear task. Standing by.');
+              }
+            } else {
+              state = state.copyWith(isListening: false);
+              _scheduleLoopRestart(500);
+            }
           }
         },
       );
@@ -281,6 +299,7 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
   /// Listens specifically for the user's task command after Jack asked "Hi Sir, what's the task?"
   Future<void> _listenForUserTask() async {
     _isProcessing = false;
+    _currentTaskWords = '';
     HapticFeedback.selectionClick();
     _startWaveformDance();
 
@@ -293,10 +312,17 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
     try {
       await _stt.listen(
         onResult: (result) {
-          state = state.copyWith(lastRecognized: result.recognizedWords);
+          _currentTaskWords = result.recognizedWords.trim();
+          state = state.copyWith(
+            lastRecognized: _currentTaskWords,
+            statusMessage: _currentTaskWords.isNotEmpty
+                ? _currentTaskWords
+                : "Listening to your task...",
+          );
 
-          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-            final taskText = result.recognizedWords.trim();
+          if (result.finalResult && _currentTaskWords.isNotEmpty && !_isProcessing) {
+            final taskText = _currentTaskWords;
+            _currentTaskWords = '';
             _stt.stop();
             _waveformTimer?.cancel();
             _executeUserTask(taskText);
@@ -306,6 +332,8 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
           listenFor: const Duration(seconds: 16),
           pauseFor: const Duration(seconds: 3),
           partialResults: true,
+          cancelOnError: false,
+          listenMode: stt.ListenMode.dictation,
         ),
       );
     } catch (e) {
@@ -368,13 +396,16 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
 
   void _finishTaskFlow(String message) {
     _isProcessing = false;
+    _currentTaskWords = '';
     _waveformTimer?.cancel();
 
     state = state.copyWith(
       isWokenUp: false,
       isAwaitingTask: false,
+      isListening: false,
       statusMessage: 'Say "Hey Jack" or "Jack" to wake up',
       lastRecognized: message,
+      waveformLevel: 0.15,
     );
 
     _scheduleLoopRestart(1200);
@@ -385,10 +416,11 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
     HapticFeedback.mediumImpact();
     SystemSound.play(SystemSoundType.click);
 
-    if (state.isListening) {
-      // If currently listening, stop and return to standby
+    if (state.isListening && state.isAwaitingTask) {
+      // If currently listening for task, cancel cleanly and return to standby
       _restartLoopTimer?.cancel();
       _waveformTimer?.cancel();
+      _currentTaskWords = '';
       await _stt.stop();
       _isProcessing = false;
       state = state.copyWith(
@@ -402,7 +434,20 @@ class JackWakeWordNotifier extends StateNotifier<JackWakeWordState> {
       return;
     }
 
+    final mic = await Permission.microphone.request();
+    if (!mic.isGranted) {
+      state = state.copyWith(
+        statusMessage: 'Microphone permission required',
+      );
+      return;
+    }
+
+    if (!_sttInitialized) {
+      await _initEngine();
+    }
+
     _restartLoopTimer?.cancel();
+    _currentTaskWords = '';
     await _stt.stop();
     await _tts.stop();
     _isProcessing = false;

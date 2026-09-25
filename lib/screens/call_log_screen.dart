@@ -17,8 +17,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/call_log_model.dart';
 import '../providers/call_log_provider.dart';
 import '../services/jack_master_dispatcher.dart';
-import '../services/telephony/jack_call_screener_service.dart';
-import '../services/telephony/jack_ai_voice_call_engine.dart';
 import '../services/memory/jack_cognitive_memory.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
@@ -122,186 +120,7 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
     } catch (_) {}
   }
 
-  void _showTestCallDialog() {
-    HapticFeedback.mediumImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF100E22),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        final nameCtrl = TextEditingController(text: 'Sarah Jenkins');
-        final numCtrl = TextEditingController(text: '+1 (415) 892-0199');
 
-        final presets = [
-          {'name': 'Sarah Jenkins', 'role': 'Project Lead', 'num': '+1 (415) 892-0199'},
-          {'name': 'Google Recruiter', 'role': 'Hiring Team', 'num': '+1 (650) 253-0000'},
-          {'name': 'Amazon Courier', 'role': 'Package Delivery', 'num': '+1 (800) 280-4331'},
-          {'name': 'Alex Carter', 'role': 'Design Partner', 'num': '+1 (212) 555-0182'},
-        ];
-
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            22,
-            16,
-            22,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentCyan.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.phone_callback_rounded,
-                        color: AppColors.accentCyan, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Simulate Screened Call',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Jack will answer and talk directly with the caller',
-                        style: GoogleFonts.inter(
-                          color: Colors.white54,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'QUICK SCENARIO PRESETS:',
-                style: GoogleFonts.inter(
-                  color: AppColors.accentCyan,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: presets.map((p) {
-                  return ActionChip(
-                    backgroundColor: const Color(0xFF17152B),
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                    label: Text(
-                      '${p['name']} (${p['role']})',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onPressed: () {
-                      nameCtrl.text = p['name']!;
-                      numCtrl.text = p['num']!;
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameCtrl,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Caller Name',
-                  labelStyle: GoogleFonts.inter(color: Colors.white54),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: numCtrl,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  labelStyle: GoogleFonts.inter(color: Colors.white54),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentCyan,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.ring_volume_rounded, size: 20),
-                  label: Text(
-                    'Trigger Incoming Call',
-                    style: GoogleFonts.inter(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    final cName = nameCtrl.text.trim().isEmpty ? 'Sarah Jenkins' : nameCtrl.text.trim();
-                    final cNum = numCtrl.text.trim().isEmpty ? '+1 (415) 892-0199' : numCtrl.text.trim();
-                    JackAiVoiceCallEngine.instance.showIncomingCall(
-                      callerName: cName,
-                      phoneNumber: cNum,
-                    );
-                    JackCallScreenerService.triggerGlobally(
-                      callerName: cName,
-                      phoneNumber: cNum,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   void _showOutboundDialerDialog() {
     HapticFeedback.mediumImpact();
@@ -362,16 +181,6 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
               final target = targetCtrl.text.trim();
               Navigator.of(ctx).pop();
               if (target.isNotEmpty) {
-                JackAiVoiceCallEngine.instance.startOutgoingCall(
-                  recipientName: target,
-                  phoneNumber: target,
-                );
-                JackCallScreenerService.instance.triggerOutgoingCall(
-                  context,
-                  ref,
-                  phoneNumber: target,
-                  contactName: target,
-                );
                 final res = await JackMasterDispatcher.executeCommand({
                   'intent': 'make_call',
                   'params': {'target': target},
@@ -624,14 +433,9 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Telephony Hub & Forwarding (CCF)',
+            tooltip: 'Telephony Hub',
             icon: const Icon(Icons.hub_rounded, color: Color(0xFF8B5CF6), size: 22),
             onPressed: () => context.push('/telephony-dashboard'),
-          ),
-          IconButton(
-            tooltip: 'Simulate Screened Call',
-            icon: const Icon(Icons.ring_volume_rounded, color: AppColors.accentCyan, size: 22),
-            onPressed: _showTestCallDialog,
           ),
           IconButton(
             tooltip: 'Clear Log',
@@ -750,12 +554,12 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 11),
                           ),
-                          icon: const Icon(Icons.ring_volume_rounded, size: 17),
+                          icon: const Icon(Icons.phone_forwarded_rounded, size: 17),
                           label: Text(
-                            'Simulate Call',
+                            'Dial Number',
                             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
                           ),
-                          onPressed: _showTestCallDialog,
+                          onPressed: _showOutboundDialerDialog,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -769,12 +573,12 @@ class _CallLogScreenState extends ConsumerState<CallLogScreen> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 11),
                           ),
-                          icon: const Icon(Icons.phone_forwarded_rounded, size: 17),
+                          icon: const Icon(Icons.hub_rounded, size: 17),
                           label: Text(
-                            'Dial Number',
+                            'Telephony Hub',
                             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
                           ),
-                          onPressed: _showOutboundDialerDialog,
+                          onPressed: () => context.push('/telephony-dashboard'),
                         ),
                       ),
                     ],

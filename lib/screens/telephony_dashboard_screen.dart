@@ -15,9 +15,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../services/telephony/jack_ai_voice_call_engine.dart';
 import '../services/telephony/jack_multi_tenant_telephony_service.dart';
-import '../services/ai/jack_local_llm_engine.dart';
 import '../services/api/jack_storage.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
@@ -40,8 +38,6 @@ class _TelephonyDashboardScreenState
 
   final JackMultiTenantTelephonyService _service =
       JackMultiTenantTelephonyService.instance;
-  final JackLocalLlmEngine _localAi = JackLocalLlmEngine.instance;
-  final String systemDirective = JackLocalLlmEngine.defaultScreeningDirective;
 
   bool _isSyncing = false;
 
@@ -49,33 +45,11 @@ class _TelephonyDashboardScreenState
   void initState() {
     super.initState();
     _initTelephonyProfile();
-    JackAiVoiceCallEngine.instance.init();
-    _localAi.initializeLocalAgent();
     _service.liveTranscriptNotifier.addListener(_autoScrollTerminal);
-    JackAiVoiceCallEngine.instance.liveTranscriptNotifier.addListener(_syncLocalTranscripts);
-  }
-
-  /// Active voice processing loop powered by on-device Llama 3.2 1B (sub-50ms)
-  void onUserVoiceIntercepted(String capturedText) async {
-    _service.appendTranscript('User (Voice)', capturedText);
-    final aiResponse = await _localAi.generateVoiceResponse(
-      capturedText,
-      systemDirective: systemDirective,
-    );
-    _service.appendTranscript('Jack (Local 1B)', aiResponse);
-  }
-
-  void _syncLocalTranscripts() {
-    final list = JackAiVoiceCallEngine.instance.liveTranscriptNotifier.value;
-    if (list.isNotEmpty) {
-      final last = list.last;
-      _service.appendTranscript(last['speaker'] ?? 'Jack', last['text'] ?? '');
-    }
   }
 
   @override
   void dispose() {
-    JackAiVoiceCallEngine.instance.liveTranscriptNotifier.removeListener(_syncLocalTranscripts);
     _service.liveTranscriptNotifier.removeListener(_autoScrollTerminal);
     _targetNumberCtrl.dispose();
     _taskPromptCtrl.dispose();
@@ -216,194 +190,17 @@ class _TelephonyDashboardScreenState
 
             const SizedBox(height: 16),
 
-            // ── 2. Local Llama 3.2 1B INT4 Model Manager Card ───────────────────
-            _buildLocalModelManagerCard(),
-
-            const SizedBox(height: 16),
-
-            // ── 3. Conditional Call Forwarding (CCF) Activation Terminal ────────
-            _buildCcfForwardingTerminal(),
-
-            const SizedBox(height: 16),
-
-            // ── 4. Command-based Outbound AI Dialing Execution Block ─────────────
+            // ── 2. Command-based Outbound AI Dialing Execution Block ─────────────
             _buildOutboundExecutionCard(),
 
             const SizedBox(height: 16),
 
-            // ── 5. Live Real-Time Cyber-Terminal Display with Call Takeover ─────
+            // ── 3. Live Real-Time Cyber-Terminal Display ────────────────────────
             _buildLiveTranscriptTerminal(),
 
             const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
-  }
-
-  // ── Local Model Manager Card ────────────────────────────────────────────────
-  Widget _buildLocalModelManagerCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0E24),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.memory_rounded, color: Color(0xFF8B5CF6), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'LOCAL ON-DEVICE AI ENGINE',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF8B5CF6),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _localAi.isReady
-                      ? const Color(0xFF22C55E).withValues(alpha: 0.2)
-                      : const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _localAi.isReady
-                        ? const Color(0xFF22C55E).withValues(alpha: 0.4)
-                        : const Color(0xFF00E5FF).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  _localAi.isReady ? 'GPU Ready (Sub-50ms)' : 'Hybrid Cloud / Local',
-                  style: GoogleFonts.spaceMono(
-                    color: _localAi.isReady ? const Color(0xFF22C55E) : const Color(0xFF00E5FF),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Meta Llama 3.2 1B (INT4) executed via ONNX Runtime GenAI directly on your phone\'s GPU / NPU hardware. Zero cloud latency, zero cost, completely private.',
-            style: GoogleFonts.inter(color: Colors.white70, fontSize: 12.5),
-          ),
-          const SizedBox(height: 14),
-
-          // Download progress or download trigger button
-          ValueListenableBuilder<bool>(
-            valueListenable: _localAi.isDownloadingNotifier,
-            builder: (ctx, isDownloading, _) {
-              if (isDownloading) {
-                return ValueListenableBuilder<double>(
-                  valueListenable: _localAi.downloadProgressNotifier,
-                  builder: (ctx, progress, _) {
-                    return ValueListenableBuilder<String>(
-                      valueListenable: _localAi.downloadStatusNotifier,
-                      builder: (ctx, status, _) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    status.isNotEmpty ? status : 'Downloading model files...',
-                                    style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${(progress * 100).toStringAsFixed(0)}%',
-                                  style: GoogleFonts.spaceMono(
-                                    color: const Color(0xFF00E5FF),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: LinearProgressIndicator(
-                                value: progress > 0 ? progress : null,
-                                minHeight: 6,
-                                backgroundColor: Colors.white12,
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00E5FF)),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 42,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _localAi.isReady ? const Color(0xFF1E1B4B) : const Color(0xFF8B5CF6),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        icon: Icon(_localAi.isReady ? Icons.check_circle_rounded : Icons.download_rounded, size: 18),
-                        label: Text(
-                          _localAi.isReady ? 'Model Ready in Storage' : 'Download Llama 3.2 1B (600MB)',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                        onPressed: () async {
-                          HapticFeedback.mediumImpact();
-                          if (_localAi.isReady) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Llama 3.2 1B INT4 is already ready in phone storage!')),
-                            );
-                            return;
-                          }
-                          await _localAi.downloadLlamaModel();
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    height: 42,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: Text('Reload', style: GoogleFonts.inter(fontSize: 12)),
-                      onPressed: () async {
-                        HapticFeedback.lightImpact();
-                        await _localAi.initializeLocalAgent();
-                        setState(() {});
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
       ),
     );
   }
@@ -483,117 +280,6 @@ class _TelephonyDashboardScreenState
           ),
         );
       },
-    );
-  }
-
-  // ── CCF Forwarding & Free Testing Terminal ──────────────────────────────────
-  Widget _buildCcfForwardingTerminal() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111024),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.ring_volume_rounded, color: Color(0xFF8B5CF6), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'FREE INCOMING CALL SCREENING',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF8B5CF6),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.bolt_rounded, color: Color(0xFF00E5FF), size: 13),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Llama 3.2 1B INT4',
-                      style: GoogleFonts.spaceMono(
-                        color: const Color(0xFF00E5FF),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'When someone calls, Jack screens them on your device using on-device STT, sub-50ms Llama 3.2 1B reasoning, and British Baritone TTS.',
-            style: GoogleFonts.inter(color: Colors.white70, fontSize: 12.5),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B5CF6),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
-                    label: Text(
-                      'Test Call Screening',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12.5),
-                    ),
-                    onPressed: () async {
-                      HapticFeedback.mediumImpact();
-                      _service.appendTranscript('System', 'Launching simulated incoming call test with Jack AI...');
-                      await JackAiVoiceCallEngine.instance.showIncomingCall(
-                        callerName: 'Test Caller',
-                        phoneNumber: '+1 (555) 019-2834',
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF00E5FF),
-                    side: BorderSide(color: const Color(0xFF00E5FF).withValues(alpha: 0.4)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.speed_rounded, size: 16),
-                  label: Text(
-                    'Sub-50ms Test',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    onUserVoiceIntercepted('Hello, I am calling to confirm our 3 PM meeting today.');
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -690,12 +376,6 @@ class _TelephonyDashboardScreenState
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri);
                 }
-
-                // Start local AI Voice Call Engine session
-                await JackAiVoiceCallEngine.instance.startOutgoingCall(
-                  recipientName: target,
-                  phoneNumber: cleanNumber,
-                );
               },
             ),
           ),
@@ -778,103 +458,6 @@ class _TelephonyDashboardScreenState
           ),
           const Divider(color: Colors.white10),
 
-          // ── Live Call Takeover & Quick Directives Bar ────────────────────────
-          ValueListenableBuilder<bool>(
-            valueListenable: JackAiVoiceCallEngine.instance.isTakenOverByUserNotifier,
-            builder: (ctx, isTakenOver, _) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isTakenOver
-                      ? const Color(0xFFEF4444).withValues(alpha: 0.12)
-                      : const Color(0xFF8B5CF6).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isTakenOver
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.35)
-                        : const Color(0xFF8B5CF6).withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isTakenOver ? Icons.person_rounded : Icons.smart_toy_rounded,
-                          size: 15,
-                          color: isTakenOver ? const Color(0xFFEF4444) : const Color(0xFF8B5CF6),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            isTakenOver
-                                ? 'You are speaking directly (Jack listening)'
-                                : 'Jack AI is actively screening the call',
-                            style: GoogleFonts.inter(
-                              color: isTakenOver ? const Color(0xFFFCA5A5) : Colors.white70,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            HapticFeedback.heavyImpact();
-                            if (isTakenOver) {
-                              JackAiVoiceCallEngine.instance.handBackToJack();
-                            } else {
-                              JackAiVoiceCallEngine.instance.takeOverCall();
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isTakenOver ? const Color(0xFF8B5CF6) : const Color(0xFFEF4444),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isTakenOver ? Icons.smart_toy_rounded : Icons.phone_forwarded_rounded,
-                                  size: 12,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isTakenOver ? 'Hand Back to Jack' : 'Take Over Call',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildDirectiveChip('📞 Call back in 15m', 'Tell the caller I will call them back in 15 minutes.'),
-                          _buildDirectiveChip('🗓️ Confirm 3 PM', 'Confirm our appointment for 3 PM today.'),
-                          _buildDirectiveChip('✉️ Take a message', 'Ask the caller for their name and callback number.'),
-                          _buildDirectiveChip('🚫 Spam - Hang up', 'Politely decline the call and state we are not interested.'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-
           Expanded(
             child: ValueListenableBuilder<List<TranscriptEntry>>(
               valueListenable: _service.liveTranscriptNotifier,
@@ -882,7 +465,7 @@ class _TelephonyDashboardScreenState
                 if (entries.isEmpty) {
                   return Center(
                     child: Text(
-                      '> Standby. Ready for incoming or outgoing calls.\n> Pipecat Deepgram STT + Groq LLM + Cartesia TTS active.',
+                      '> Standby. Ready for incoming or outgoing calls.\n> Native SIM + Cloud Telephony Active.',
                       style: GoogleFonts.firaCode(color: Colors.white24, fontSize: 11, height: 1.5),
                       textAlign: TextAlign.center,
                     ),
@@ -933,21 +516,6 @@ class _TelephonyDashboardScreenState
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDirectiveChip(String label, String directive) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: ActionChip(
-        backgroundColor: Colors.white.withValues(alpha: 0.08),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        label: Text(label, style: GoogleFonts.inter(fontSize: 10.5, color: Colors.white70)),
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          JackAiVoiceCallEngine.instance.sendUserDirective(directive);
-        },
       ),
     );
   }

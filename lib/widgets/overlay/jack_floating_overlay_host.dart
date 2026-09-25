@@ -15,11 +15,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/api/direct_groq_service.dart';
 import '../../services/overlay/jack_floating_overlay_controller.dart';
-import '../../services/telephony/jack_call_screener_service.dart';
 import '../../services/voice/jack_voice_service.dart';
 import '../../services/voice/jack_wake_word_service.dart';
 import '../../theme/app_colors.dart';
@@ -110,19 +110,14 @@ class _JackFloatingOverlayHostState extends ConsumerState<JackFloatingOverlayHos
               },
             ),
             _toolTile(
-              icon: Icons.phone_callback_rounded,
-              title: 'Autonomous Call Screener',
-              subtitle: 'Trigger a simulated call for Jack to answer',
+              icon: Icons.phone_forwarded_rounded,
+              title: 'Mobile Telephony Hub',
+              subtitle: 'Place carrier SIM calls and manage telephony',
               color: const Color(0xFF22C55E),
               onTap: () {
                 Navigator.pop(ctx);
                 ref.read(jackFloatingOverlayProvider.notifier).minimize();
-                JackCallScreenerService.instance.triggerIncomingCall(
-                  context,
-                  ref,
-                  callerName: 'Alex Rivera (Design Lead)',
-                  phoneNumber: '+1 (415) 392-4910',
-                );
+                context.push('/telephony-dashboard');
               },
             ),
             _toolTile(

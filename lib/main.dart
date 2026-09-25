@@ -6,6 +6,7 @@ import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'widgets/overlay/jack_global_overlay.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'services/jack_master_dispatcher.dart';
@@ -116,39 +117,13 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
       }
     });
 
+    // Passive call observer: monitors state transitions for logging without hijacking
     _callSub = _callChannel.receiveBroadcastStream().listen((event) {
       if (event is Map) {
         final evType = event['event'];
-        if (evType == 'incoming' || evType == 'answered') {
-          if (!mounted) return;
-          final cName = event['contactName']?.toString() ?? 'Unknown';
-          final cNum = event['number']?.toString() ?? '';
-          JackAiVoiceCallEngine.instance.showIncomingCall(
-            callerName: cName,
-            phoneNumber: cNum,
-          );
-          import_call_service.JackCallScreenerService.instance.triggerIncomingCall(
-            context,
-            ref,
-            callerName: cName,
-            phoneNumber: cNum,
-            autoAnswer: true,
-          );
-        } else if (evType == 'outgoing') {
-          if (!mounted) return;
-          final cNum = event['number']?.toString() ?? '';
-          final cName = event['contactName']?.toString() ?? cNum;
-          JackAiVoiceCallEngine.instance.startOutgoingCall(
-            recipientName: cName,
-            phoneNumber: cNum,
-          );
-          import_call_service.JackCallScreenerService.instance.triggerOutgoingCall(
-            context,
-            ref,
-            phoneNumber: cNum,
-            contactName: cName,
-          );
-        }
+        final cNum = event['number']?.toString() ?? '';
+        final cName = event['contactName']?.toString() ?? cNum;
+        debugPrint('[Telephony] Event: $evType, Number: $cNum, Contact: $cName');
       }
     });
   }
@@ -180,13 +155,25 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
       await _overlayChannel.invokeMethod(
           'updateOverlayChat', {'user': 'Listening...', 'jack': ''});
 
+      final mic = await Permission.microphone.request();
+      if (!mic.isGranted) {
+        await _overlayChannel.invokeMethod(
+            'updateOverlayChat', {'user': 'Microphone permission required', 'jack': ''});
+        return;
+      }
+
       if (!_overlaySpeechInit) {
-        _overlaySpeechInit = await _overlaySpeech.initialize();
+        _overlaySpeechInit = await _overlaySpeech.initialize(
+          onError: (err) => debugPrint('[OverlaySpeech] Error: $err'),
+          onStatus: (status) => debugPrint('[OverlaySpeech] Status: $status'),
+        );
         await JackMaleVoiceHelper.configureMaleBaritoneVoice(_overlayTts);
       }
 
       _listenOverlayLoop();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[OverlaySpeech] Interaction error: $e');
+    }
   }
 
   Future<void> _listenOverlayLoop() async {
@@ -338,12 +325,21 @@ class _JackAppState extends ConsumerState<JackApp> with WidgetsBindingObserver {
             });
           }
         },
+        onSoundLevelChange: (level) {
+          final normalized = ((level + 10) / 20).clamp(0.0, 1.0);
+          _overlayChannel.invokeMethod('updateAudioLevel', {'level': normalized});
+        },
         listenOptions: stt.SpeechListenOptions(
-          listenFor: const Duration(seconds: 16),
+          listenFor: const Duration(seconds: 20),
           pauseFor: const Duration(seconds: 3),
+          partialResults: true,
+          cancelOnError: false,
+          listenMode: stt.ListenMode.dictation,
         ),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[OverlaySpeech] listen error: $e');
+    }
   }
 
   @override
